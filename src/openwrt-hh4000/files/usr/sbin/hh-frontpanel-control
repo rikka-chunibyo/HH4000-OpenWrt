@@ -1,0 +1,11 @@
+#!/bin/sh
+set -e
+[ "$#" = 1 ] || exit 2
+case "$1" in
+ restart-program) exec /etc/init.d/hh-frontpanel restart;;
+ stop-program) ubus call service signal '{"name":"hh-frontpanel","instance":"app","signal":15}' >/dev/null 2>&1 || :; exit 0;;
+ home|lan|wifi|system|message|up|down|ok|main|reset|wake|blank|next|previous|menu|select|release|sleep) exec /usr/sbin/hh-frontpanel-run --command "$1";;
+ hold-up|hold-down|hold-ok|hold-main|hold-reset) exec /usr/sbin/hh-frontpanel-run --command "hold:${1#hold-}";;
+ page:*) page=${1#page:}; case "$page" in ''|*[!a-zA-Z0-9_.-]*) exit 2;; esac; [ "${#page}" -le 39 ] || exit 2; exec /usr/sbin/hh-frontpanel-run --command "$1";;
+ *) exit 2;;
+esac

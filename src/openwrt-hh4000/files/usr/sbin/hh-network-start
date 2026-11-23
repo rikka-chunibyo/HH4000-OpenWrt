@@ -1,0 +1,48 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Called by the RAM init after its independent watchdog feeder starts.
+set -e
+# Match the proven manual bring-up: let early board/PCIe initialization settle.
+sleep 15
+mkdir -p /tmp/resolv.conf.d /var/run/ubus /var/state /var/lock /tmp/sysinfo /tmp/luci-sessions
+if ! grep -q '^bcm_enet ' /proc/modules; then
+ /usr/libexec/hh-wan-select >/tmp/hh-wan-select.log 2>&1
+ hh-ethernet-init >/tmp/hh-ethernet.log 2>&1 || grep -q 'Session:' /tmp/hh-bdmf-init.log
+fi
+if ! grep -q '^dhd ' /proc/modules; then
+ hh-wifi-init >/tmp/hh-wifi.log 2>&1
+fi
+hh-bridge-init >/tmp/hh-queues.log 2>&1
+firewall_enabled=0
+for fw_start in /etc/rc.d/S*firewall; do
+ if [ -x "$fw_start" ]; then firewall_enabled=1; break; fi
+done
+if [ "$firewall_enabled" = 1 ]; then /usr/libexec/hh-firewall-prepare >/tmp/hh-firewall-prepare.log 2>&1; fi
+printf '%s\n' 'Sagemcom FAST5689 (HH4000)' >/tmp/sysinfo/model
+ubusd -s /var/run/ubus/ubus.sock >/tmp/hh-ubusd.log 2>&1 &
+sleep 1
+procd -S -s /var/run/ubus/ubus.sock >/tmp/hh-procd.log 2>&1 &
+n=0
+until ubus list service 2>/dev/null | grep -q '^service$'; do
+ n=$((n + 1)); [ "$n" -lt 15 ]; sleep 1
+done
+# Run enabled services in the normal rc.d order, including newly installed ones.
+: >/tmp/hh-services-boot.tsv
+for service in /etc/rc.d/S*; do
+ [ -x "$service" ] || continue
+ name=${service##*/}
+ echo "START $name" >>/tmp/hh-services-boot.tsv
+ "$service" boot >"/tmp/hh-boot-$name.log" 2>&1 && rc=0 || rc=$?
+ if [ "$rc" != 0 ]; then logger -t hh-startup "$name failed: $rc"; fi
+ printf '%s\t%s\n' "$name" "$rc" >>/tmp/hh-services-boot.tsv
+done
+# Keep forwarding closed if essential network or firewall startup failed.
+for name in network rpcd uhttpd; do
+ ubus call service list "{\"name\":\"$name\"}" | grep -q '"running": true'
+done
+if [ "$firewall_enabled" = 1 ]; then
+ iptables -S zone_wan_forward >/dev/null
+fi
+echo 1 >/proc/sys/net/ipv4/ip_forward
+/sbin/reload_config
+echo HH_NETWORK_SERVICES_REGISTERED

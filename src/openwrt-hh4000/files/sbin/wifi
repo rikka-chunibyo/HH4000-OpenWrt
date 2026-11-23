@@ -1,0 +1,11 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Minimal netifd CLI for this board; no module unload or calibration commits.
+command=${1:-up}; device=${2:-}
+case "$device" in ''|radio0|radio1|radio2) ;; *) echo 'Unknown radio' >&2; exit 2;; esac
+if [ -n "$device" ]; then args="{\"device\":\"$device\"}"; else args='{}'; fi
+case "$command" in
+ up|down|status) ubus call network.wireless "$command" "$args";;
+ reload|reconf) ubus call network reload;;
+ *) echo 'Usage: wifi {up|down|status|reload} [radio0|radio1|radio2]' >&2; exit 2;;
+esac

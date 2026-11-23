@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+K=/lib/modules/4.1.52-5.02L.07
+for mod in nf_conntrack nf_defrag_ipv4 nf_conntrack_ipv4 nf_defrag_ipv6 nf_conntrack_ipv6 iptable_filter iptable_mangle nf_nat nf_nat_ipv4 iptable_nat ip6_tables ip6table_filter ip6table_mangle nf_nat_masquerade_ipv4 ipt_MASQUERADE nf_reject_ipv4 ipt_REJECT nf_reject_ipv6 ip6t_REJECT xt_conntrack xt_state xt_limit xt_multiport xt_TCPMSS xt_LOG nf_nat_redirect xt_REDIRECT xt_comment; do
+ grep -w -q "$mod" /proc/modules || insmod "$K/$mod.ko"
+done
+# No IP forwarding before the final policy is installed.
+echo 0 >/proc/sys/net/ipv4/ip_forward
+iptables -P FORWARD DROP
+iptables -P INPUT DROP
+ip6tables -P FORWARD DROP
+ip6tables -P INPUT DROP

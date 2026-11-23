@@ -1,0 +1,33 @@
+# Separate firmware and data partitions
+
+This follows the user's authorization to use approximately 50-100 MiB for firmware and the remainder of NAND, excluding boot areas, for data. The chosen firmware region is 96 MiB; writable storage is 395.625 MiB before UBI/UBIFS overhead. nvram, cfe and the entire 19.625 MiB boot UBI stay at their original offsets. Completed and verified. Results are recorded in work/repartition/final-results.json. The data filesystem reports 344.8 MiB total and 340.1 MiB available. Stored-image boot, unattended cold boot, normal LuCI reboot and configuration/file power-cycle tests passed. All four preserved regular-file hashes match, including SSH keys and the calibration override. All eight LAN bridge members and three radios returned, the panel is healthy, authenticated LuCI returns HTTP 200 and SSH is reachable. NAND ECC-failure counters remained zero. UBI handles four bad blocks in the data area (also recorded in the original stock research), with 58 blocks reserved for replacements; firmware UBI has zero bad blocks.
+
+Physical partition map: `128k(nvram),640k(cfe),20096k(boot),98304k(ubi),-(storage)` on brcmnand.0. Firmware is MTD 3 / UBI 0; boot identity is MTD 2 / UBI 1; writable data is MTD 4 / UBI 2. The storage partition begins at 0x07460000 and ends at the end of the 512 MiB NAND. The firmware partition begins at 0x01460000. Repartitioning was done from the isolated embedded SquashFS RAM image with no old main/storage UBI attached. Only MTD 3 and MTD 4 were erased under the new map. Bootloaders and calibration were not rewritten; only the saved boot environment is updated to select the new tested map.
+
+The existing vendor filesystem1 is retained in firmware UBI (31 MiB allocation) to preserve board data. Root has a 24 MiB static volume reservation, kernel 8 MiB, bootstrap 4 MiB and DTB one LEB. This provides room for image growth and spare UBI space for staged updates. Settings and installed packages live in ubi2:owrt-data mounted as /overlay. Standard opkg installs therefore use the large writable filesystem without alternate installation destinations.
+
+The bootstrap attaches boot UBI as device 1 before storage as device 2, preserving the BSP identity lookup required for buttons, LEDs and display. It still supports the earlier main-UBI writable volume when the storage partition is absent. Normal RAM development with hh.persist=0 uses a temporary overlay. The special one-time repartition RAM boot omits automatic main UBI attachment and uses hh.repartition=1 to reserve boot UBI 1 before network startup.
+
+## Backups
+
+work/repartition/backup.json records current settings, the boot environment, filesystem1 and six bounded-RAM chunks of the old raw data partition. The assembled legacy-data-current.bin SHA256 equals the full live raw read. Offline UBI extraction found the same eight factory-file payloads as the original backup, resolving the earlier raw-hash discrepancy as storage-container changes rather than changed extracted files. The fresh board/configuration/optical files and their hashes remain on dev. The original full NAND backup remains separate. settings-file-hashes.json records the four writable regular files for comparison after migration (panel UCI config, Wi-Fi calibration settings override and generated SSH host keys).
+
+## Building, updating and recovery
+
+Source changes: src/openwrt-hh4000/persistent/bootstrap-init adds the separate data mount; tools/build_openwrt_persistent.py supports --output for independent image sets. New-layout images are under work/repartition. tools/repartition_live.py is the guarded ONE-TIME formatting/install helper; do not use its install mode for routine firmware updates. tools/repartition_boot.py handles the temporary map test, stored-image test and verified environment write. All UART operations retain the paced echo/prompt protocol.
+
+A routine firmware update must update only selected UBI 0 system volumes and leave MTD 4 / UBI 2 untouched. Boot from RAM first so no running SquashFS is overwritten, verify image checksums and volume capacity, write only the intended system volumes, then verify readback. Do not run flash_eraseall on the storage partition during a firmware update. Generic OpenWrt sysupgrade is still unsupported by this custom installation.
+
+For recovery, interrupt the retained U-Boot over UART and use Ethernet TFTP to load the known RAM image, kernel and DTB. UART carries commands/console; TFTP carries images. The saved new mtdparts must be used by both U-Boot and Linux, so U-Boot does not scan beyond the smaller firmware container into the data container. A raw restoration of the original full NAND backup also requires restoring the original partition-map environment. Configurations should still be backed up externally; preserving storage does not validate every old package binary against a different firmware build.
+
+## nftables clarification
+
+Basic nftables entered Linux 3.13: https://netfilter.org/projects/nftables/ . The current vendor 4.1 configuration disables CONFIG_NF_TABLES. A compatible basic stack would require building/enabling and validating the appropriate modules and userspace. This is separate from supporting OpenWrt firewall4: its inet-family stateful NAT requires at least the feature introduced in Linux 5.2, with additional modern features depending on the ruleset. See https://wiki.nftables.org/wiki-nftables/index.php/Performing_Network_Address_Translation_%28NAT%29 . The eventual modern-kernel port should target the chosen OpenWrt release's supported kernel rather than merely the oldest version containing nftables. This repartition does not change the kernel or firewall implementation.
+
+Final dev artifacts: the bootstrap and builder changes, two repartition helpers, image/backup/manifests/logs under work/repartition, the established RAM helper's bootargs and TFTP image, and this document. The earlier storage documents link here as the current state. Router NAND writes were confined to the firmware and data regions under the new map, plus the saved boot environment. Routine firmware updates must preserve storage. The kernel and firewall implementation were not changed.
+
+Current WAN/firewall follow-up: [34-wan-firewall-hardware-nat.md](34-wan-firewall-hardware-nat.md) records the installed configurable eth4 WAN, firewall3 and verified TCP/UDP hardware NAT.
+
+Startup, IPv6, package installation and household-trial follow-up: [35-everyday-use-readiness.md](35-everyday-use-readiness.md).
+
+Configurable rear RESET and full data reset: [39-configurable-reset-and-factory-reset.md](39-configurable-reset-and-factory-reset.md). The guarded reset now supports this separate data layout. Generic sysupgrade remains unsupported.

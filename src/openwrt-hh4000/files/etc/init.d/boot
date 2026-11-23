@@ -1,0 +1,12 @@
+#!/bin/sh /etc/rc.common
+# Bootstrap already mounted the root and loaded the exact vendor modules.
+START=10
+STOP=90
+boot() {
+ mkdir -p /var/lock /var/log /var/run /var/state /var/tmp /tmp/.uci /tmp/resolv.conf.d
+ chmod 1777 /var/lock
+ chmod 0700 /tmp/.uci
+ [ -e /run ] || ln -s /var/run /run
+ touch /var/log/wtmp /var/log/lastlog /tmp/resolv.conf.d/resolv.conf.auto
+ printf 'nameserver 127.0.0.1\nnameserver ::1\n' >/tmp/resolv.conf
+}

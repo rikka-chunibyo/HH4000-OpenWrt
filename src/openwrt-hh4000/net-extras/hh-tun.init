@@ -1,0 +1,9 @@
+#!/bin/sh /etc/rc.common
+START=18
+STOP=90
+start() {
+ [ "$(uname -r)" = 4.1.52-5.02L.07 ] || return 1
+ [ -d /sys/module/tun ] || insmod /lib/modules/4.1.52-5.02L.07/tun.ko || return 1
+ [ -c /dev/net/tun ]
+}
+stop() { :; }

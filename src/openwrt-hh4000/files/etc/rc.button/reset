@@ -1,0 +1,4 @@
+#!/bin/sh
+# HH4000 reset is owned by hh-reset; generic firstboot is unsafe for this layout.
+logger -t hh-reset 'Ignoring duplicate generic reset event; hh-reset owns the button'
+exit 0

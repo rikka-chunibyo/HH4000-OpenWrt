@@ -1,0 +1,18 @@
+#!/bin/sh /etc/rc.common
+# Compatibility entry point for older development scripts.
+# Each standard service retains its own procd identity and UCI triggers.
+START=20
+start() {
+ /etc/init.d/network start
+ /etc/init.d/rpcd start
+ /etc/init.d/uhttpd start
+}
+reload() {
+ /etc/init.d/network reload
+ /etc/init.d/uhttpd reload
+}
+stop() {
+ /etc/init.d/uhttpd stop
+ /etc/init.d/rpcd stop
+ /etc/init.d/network stop
+}

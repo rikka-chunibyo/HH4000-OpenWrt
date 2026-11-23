@@ -1,0 +1,3 @@
+#!/bin/sh
+unset LD_PRELOAD
+exec /vendor/lib/ld-linux.so.3 --library-path /vendor/lib:/vendor/usr/lib /usr/libexec/hh-frontpanel "$@"

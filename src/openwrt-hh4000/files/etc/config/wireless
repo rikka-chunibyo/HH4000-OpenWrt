@@ -1,0 +1,54 @@
+config wifi-device radio0
+ option type bcmdhd
+ option serialize 1
+ option reconf 0
+ option ifname wl0
+ option phy phy0
+ option band 2g
+ option channel 6
+ option country CA
+ option disabled 1
+
+config wifi-iface ap0
+ option device radio0
+ option mode ap
+ option network lan
+ option ssid HH4000
+ option encryption psk2
+
+config wifi-device radio1
+ option type bcmdhd
+ option serialize 1
+ option reconf 0
+ option ifname wl1
+ option phy phy1
+ option band 5g
+ option channel 149
+ option country CA
+ option disabled 1
+
+config wifi-iface ap1
+ option device radio1
+ option mode ap
+ option network lan
+ option ssid HH4000
+ option encryption psk2
+
+config wifi-device radio2
+ option type bcmdhd
+ option serialize 1
+ option reconf 0
+ option ifname wl2
+ option phy phy2
+ option band 5g
+ option channel 36
+ option country CA
+ option disabled 1
+
+config wifi-iface ap2
+ option device radio2
+ option mode ap
+ option network lan
+ option ssid HH4000
+ option encryption psk2
+

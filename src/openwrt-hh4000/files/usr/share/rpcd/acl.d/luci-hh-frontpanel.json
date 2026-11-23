@@ -1,0 +1,47 @@
+{
+  "luci-hh-frontpanel": {
+    "description": "Administer the HH4000 front panel and execute Python programs as root",
+    "read": {
+      "uci": [
+        "hh_frontpanel"
+      ],
+      "ubus": {
+        "file": [
+          "read"
+        ]
+      },
+      "file": {
+        "/var/run/hh-frontpanel/state.json": [
+          "read"
+        ],
+        "/var/run/hh-frontpanel/app.json": [
+          "read"
+        ],
+        "/usr/share/hh-frontpanel/example.py": [
+          "read"
+        ],
+        "/usr/share/hh-frontpanel/variables-example.py": [
+          "read"
+        ],
+        "/var/run/hh-reset/state.json": [
+          "read"
+        ]
+      }
+    },
+    "write": {
+      "uci": [
+        "hh_frontpanel"
+      ],
+      "ubus": {
+        "file": [
+          "exec"
+        ]
+      },
+      "file": {
+        "/usr/sbin/hh-frontpanel-control": [
+          "exec"
+        ]
+      }
+    }
+  }
+}

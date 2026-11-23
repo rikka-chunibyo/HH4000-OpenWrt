@@ -1,0 +1,48 @@
+#!/bin/sh
+# Read-only network data; never publishes wireless credentials.
+. /lib/functions.sh
+umask 077
+mkdir -p /var/run/hh-frontpanel
+while :; do
+ config_load hh_frontpanel
+ config_get network main status_network lan
+ case "$network" in ''|*[!A-Za-z0-9_-]*) network=lan;; esac
+ lan=$(ubus -t 2 call network.interface.lan status 2>/dev/null)
+ wan=$(ubus -t 2 call network.interface.wan status 2>/dev/null)
+ wan6=$(ubus -t 2 call network.interface.wan6 status 2>/dev/null)
+ case "$network" in lan) selected="$lan";; wan) selected="$wan";; wan6) selected="$wan6";; *) selected=$(ubus -t 2 call "network.interface.$network" status 2>/dev/null);; esac
+ up=$(jsonfilter -s "$selected" -e '@.up' 2>/dev/null)
+ ip=$(jsonfilter -s "$selected" -e '@["ipv4-address"][0].address' 2>/dev/null)
+ health=pending; [ -n "$selected" ] || health=error
+ [ "$up" = true ] && [ -n "$ip" ] && health=ready
+ tmp=/var/run/hh-frontpanel/network.new
+ read -r stamp unused </proc/uptime
+ printf 'stamp\t%s\nhealth\t%s\nip\t%s\n' "$stamp" "$health" "$ip" >"$tmp"
+ for entry in lan wan wan6; do
+  case "$entry" in lan) data="$lan";; wan) data="$wan";; wan6) data="$wan6";; esac
+  state=$(jsonfilter -s "$data" -e '@.up' 2>/dev/null)
+  address=$(jsonfilter -s "$data" -e '@["ipv4-address"][0].address' 2>/dev/null)
+  [ "$entry" != wan6 ] || address=$(jsonfilter -s "$data" -e '@["ipv6-address"][0].address' 2>/dev/null)
+  color=blue; label=down; flag=0
+  if [ "$state" = true ]; then flag=1; label=up; color=white; elif [ -z "$data" ]; then label=error; color=red; fi
+  printf '%s\t%s\n%s_up\t%s\n%s_status\t%s\n%s_color\t%s\n' "$entry" "$address" "$entry" "$flag" "$entry" "$label" "$entry" "$color" >>"$tmp"
+ done
+ ports='UP:'
+ for entry in 'eth0:1' 'eth1:2' 'eth2:3' 'eth3:4' 'eth4:10G'; do
+  dev=${entry%:*}; label=${entry#*:}; carrier=$(cat "/sys/class/net/$dev/carrier" 2>/dev/null)
+  state=down; speed=0
+  if [ "$carrier" = 1 ]; then state=up; speed=$(cat "/sys/class/net/$dev/speed" 2>/dev/null); else label=-; fi
+  printf '%s\t%s\n%s_speed\t%s\n' "$dev" "$state" "$dev" "${speed:-0}" >>"$tmp"
+  ports="$ports $label"
+ done
+ wireless=$(ubus -t 2 call network.wireless status 2>/dev/null); count=0
+ for i in 0 1 2; do
+  state=$(jsonfilter -s "$wireless" -e "@.radio$i.up" 2>/dev/null)
+  if [ "$state" = true ]; then state=up; count=$((count + 1)); else state=off; fi
+  printf 'radio%s\t%s\n' "$i" "$state" >>"$tmp"
+  case "$i" in 0) radio0=$state;; 1) radio1=$state;; 2) radio2=$state;; esac
+ done
+ printf 'ports\t%s\nwifi\t%s/3 up\nwifi1\tWi-Fi %s/3 up\nwifi2\t2G %s | 5G %s/%s\n' "$ports" "$count" "$count" "$radio0" "$radio1" "$radio2" >>"$tmp"
+ mv "$tmp" /var/run/hh-frontpanel/network
+ sleep 5
+done

@@ -1,0 +1,16 @@
+--- a/state.c
++++ b/state.c
+@@ -215,6 +215,14 @@ void procd_shutdown(int event)
+ 	if (state >= STATE_SHUTDOWN)
+ 		return;
++
++	/* HH4000 keeps the vendor watchdog/console init as PID 1.  In this
++	 * service-manager mode STATE_INIT never loaded the shutdown action.
++	 * Load it now so rcS K shutdown can advance to STATE_HALT normally.
++	 */
++	if (getpid() != 1)
++		procd_inittab();
++
+ 	DEBUG(2, "Shutting down system with event %x\n", event);
+ 	reboot_event = event;
+ 	state = STATE_SHUTDOWN;

@@ -1,0 +1,35 @@
+# Configurable rear RESET and full factory reset
+
+The rear RESET button is now handled independently of the display service. Its defaults are a release after less than one second for a normal reboot, and a continuous 15-second hold for a full factory reset. Releasing from one second up to the hold threshold cancels the operation. A long hold fires once and does not also request a short-press reboot. A button held while the listener starts, or while its settings change, must be released before it can trigger a system action.
+
+Configure the short action, long action and hold duration in LuCI under **System -> Front Panel**. The long-hold range is 5-60 seconds. UCI options in `hh_frontpanel.main` are `reset_action` (default `reboot`), `reset_hold` (default `factory-reset`) and `reset_hold_ms` (default `15000`). Both actions can be disabled or assigned panel/application behavior. Physical reboot and factory-reset actions remain reserved when Python mode is selected. Synthetic panel API button events cannot invoke those system operations. Runtime status is in `/var/run/hh-reset/state.json`; templates can use `{reset_pressed}`, `{reset_held}`, `{reset_remaining}` and `{reset_armed}`.
+
+## Reset scope and recovery
+
+Full factory reset removes the entire writable data filesystem contents: configuration, administrator password, optional packages, custom Python scripts and other user files. It keeps the installed firmware baseline, bootloaders, boot environment, kernel, DTB and immutable board identity/calibration. Factory defaults use eth4 as WAN, eth0-3 as LAN, LAN 192.168.1.1, the baseline three APs and Configuration mode for the panel. The two 5 GHz radios default to 80 MHz. Python is optional and must be reinstalled if the user wants Python mode after a full reset. Generated SSH/TLS identities are recreated and the administrator password must be set again during initial setup. This is a filesystem reset, not a forensic secure-erasure guarantee.
+
+The physical listener reads BSP index0/GPIO59 through the existing read-only ioctl. `/usr/sbin/hh-factory-reset` checks persistent boot mode, both capability tokens, UBI2-to-MTD4 mapping, the `owrt-data` volume name and the exact mounted data filesystem. Every failed guard returns explicitly; it does not depend on shell `set -e` inside an OR list. Only a valid request writes the persistent marker `/overlay/.hh-factory-reset-v1` and requests a reboot. `--check` and `--dry-run` only validate eligibility; they never write this marker or schedule a reset.
+
+The bootstrap verifies the data mapping before consuming the marker, then removes data while it is mounted directly and before overlayfs mounts. It rejects symbolic-link roots and markers and nested mounts. It deletes visible and hidden entries without following symlinks, keeps the request marker until deletion has been synced, and removes that marker last. An interrupted deletion retries on the next boot. The generic `/etc/rc.button/reset` handler is inert to prevent a second owner; the guarded helper also backs the `firstboot` and `jffs2reset` wrappers. Generic `sysupgrade` remains unsupported for this board installation.
+
+## Validation and installation
+
+The implementation passed 65 panel-model checks, 11 reset timing/arming/action checks, 26 host daemon/API checks, LuCI form tests, eight disposable-data erase tests and 13 independent guard acceptance/rejection checks. The same data-erasure routine was also exercised under the router's BusyBox against a disposable RAM directory with an external canary. The live writable data volume was never factory-reset. Physical RESET was previously confirmed as index0 by a 0.460-second user press; the user chose to skip the new action's physical short-press reboot test.
+
+RAM boot and stored-firmware cold boot were verified. Final live checks passed for image readbacks, 16 managed support files, preserved panel/Wi-Fi/calibration hashes, configuration reload, independent RESET operation with the panel disabled, exact restoration of the custom Python program, AP state/channel width and NAND ECC counters. The password and pinned HTTPS certificate are checked through login, without exporting password hashes.
+
+One earlier RAM test unexpectedly returned to the installed OS; the user did not initiate it. No erase request was recorded and the installer refused to run outside RAM. The cause is unresolved. A later continuous 180-second RAM/watchdog monitor did not reproduce it. Keep this observation in mind during the household trial; do not claim that its cause has been fixed.
+
+This work rewrote UBI0 volume6 (`owrt-root`) and volume8 (`owrt-init`) and installed 16 managed support files in the data overlay. A subsequent guard correction rewrote only volume6 and its matching managed helper. Bootloader, boot environment, kernel, DTB and calibration writes were not performed. No bulk user-data erase was performed. The old images and code-only upper-file backup remain on dev.
+
+Final root SHA256: `13449a16e03fd0c57f4ab91e47c574d1472f58303b128616b031c74884ab70f1`. Bootstrap SHA256: `f8d9bf5452e754d06befb9576572f37d9fb93538fd181e375cbc0068151ced47`. See `work/factory-reset/installed-manifest.json` for the complete managed-file inventory and `work/factory-reset/` for build, test, rollback and serial evidence.
+
+## Changed development artifacts
+
+Sources: front-panel C model/daemon/reset listener, shell configuration/service/reset wrappers, Python SDK/control API, LuCI view/ACL, bootstrap reset helper and image builder. Tools: front-panel builder/UI tests, disposable factory-reset tests, independent guard tests and guarded RAM installation scripts. Generated artifacts are under `work/frontpanel`, `work/factory-reset` and the temporary Windows UART/TFTP staging directory. Documentation: this file, the historical reset investigation and the storage-layout follow-up. Temporary TFTP files for this task are removed after verification; normal recovery images remain.
+
+## Remaining work
+
+PON remains deferred and unvalidated. The current system retains the old vendor kernel and proprietary BSP; a modern kernel/nftables port remains deferred. The household trial should assess stability and sustained wired/Wi-Fi/routed traffic. Full 10 Gb/s routing, guest isolation/VLAN combinations and VPN/SQM interactions with hardware offload still need dedicated validation. A board-specific automated firmware upgrade path remains to be implemented; the verified RAM-assisted update procedure preserves the separate data volume.
+
+Final evidence is saved privately under `work/factory-reset/evidence/`. The corrected stored firmware passed cold boot, all 16 managed file checks and image readbacks. All three APs reported ENABLED, at channel6/20 MHz, 149/80 MHz and 36/80 MHz. Existing password authentication and TLS identity remained valid; empty passwords and anonymous runtime reads were rejected, and HTTP redirected to HTTPS. Both firmware/data NAND ECC failure counters were zero. The 18 task-specific Windows TFTP staging files were removed after evidence export; recovery kernel/DTB and dev build artifacts were retained.

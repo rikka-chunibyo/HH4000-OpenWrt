@@ -1,0 +1,10 @@
+#!/bin/sh
+# RDPA latches the physical WAN port at module insertion. Keep this edit in RAM.
+set -eu
+wan=$(uci -q get network.wan.device || uci -q get network.wan.ifname || true)
+wan=${wan%%.*}
+case "$wan" in eth0|eth1|eth2|eth3|eth4) ;; *) exit 0;; esac
+mkdir -p /tmp/hh-board-conf
+cp -a /opt/conf/. /tmp/hh-board-conf/
+/usr/libexec/hh-scratchpad-wan /opt/conf/scratchpad /tmp/hh-board-conf/scratchpad "$wan"
+/rescue/busybox mount -o bind /tmp/hh-board-conf /opt/conf

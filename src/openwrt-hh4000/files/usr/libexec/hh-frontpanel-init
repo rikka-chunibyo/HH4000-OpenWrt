@@ -1,0 +1,39 @@
+#!/bin/sh
+# The BSP driver must read valid permanent_param from UBI 0 or 1 before insmod.
+set -eu
+K=/lib/modules/4.1.52-5.02L.07
+[ "$(cat /sys/class/mtd/mtd2/name)" = boot ]
+bootubi=''
+for u in /sys/class/ubi/ubi[01]; do
+ [ -r "$u/mtd_num" ] || continue
+ [ "$(cat "$u/mtd_num")" != 2 ] || bootubi=${u##*/}
+done
+if [ -z "$bootubi" ]; then
+ /rescue/busybox ubiattach /dev/ubi_ctrl -m 2
+ for u in /sys/class/ubi/ubi[01]; do
+  [ -r "$u/mtd_num" ] || continue
+  [ "$(cat "$u/mtd_num")" != 2 ] || bootubi=${u##*/}
+ done
+fi
+[ -n "$bootubi" ] || { echo 'Boot UBI must be device 0 or 1 for the stock BSP' >&2; exit 1; }
+pp=''
+for v in /sys/class/ubi/"${bootubi}"_*; do
+ [ -r "$v/name" ] || continue
+ [ "$(cat "$v/name")" != permanent_param ] || pp=/dev/${v##*/}
+done
+[ -n "$pp" ] && [ -c "$pp" ]
+# Check the identity format, not a specific unit's identity or secrets.
+magic=$(dd if="$pp" bs=4 count=1 2>/dev/null | /rescue/busybox hexdump -v -e '1/1 "%02x"')
+[ "$magic" = ffb76e2a ] || { echo 'Invalid permanent_param; refusing BSP insertion' >&2; exit 1; }
+load() { name=$(printf '%s' "$1" | tr '-' '_'); grep -q "^$name " /proc/modules || insmod "$K/$1.ko"; }
+load bsp_gpio_lkm
+load bsp_gpio_data
+load drv_gpio
+load ssd1322
+load mcu-core
+load mcu-i2c
+if ! grep -q '^mcu_keys ' /proc/modules; then insmod "$K/mcu-keys.ko" no_thermal_alert=1; fi
+if [ ! -e /sys/bus/i2c/devices/0-0078 ]; then echo f5689-mcu 0x78 >/sys/class/i2c-dev/i2c-0/device/new_device; fi
+[ -c /dev/bsp_dev ]
+[ -c /dev/led ] && [ ! -L /dev/led ]
+[ -c /dev/fb0 ]

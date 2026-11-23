@@ -1,0 +1,2 @@
+#!/bin/sh
+case "$*" in -y|-r\ -y|-y\ -r) exec /usr/sbin/hh-factory-reset --request;; *) echo 'Full factory reset erases all packages, settings and data. Use firstboot -y.' >&2; exit 1;; esac

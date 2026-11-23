@@ -1,0 +1,33 @@
+From e08cdc8562f55b9ac228a21f3f7605a18c522b81 Mon Sep 17 00:00:00 2001
+From: Daniel Golle <daniel@makrotopia.org>
+Date: Fri, 6 Feb 2026 11:01:29 +0000
+Subject: [PATCH] hotplug-dispatch: fix filter disallowing setting PATH
+
+Due to a bug in hotplug-dispatch, the PATH env variable wasn't
+filtered, allowing authrorized callers the execution of commands
+via PATH environment variable filter bypass.
+
+Replace the call to strcmp with strncmp and limit the comparision
+to 5 characters to account for each character in "PATH=".
+
+Fixes: TOB-OWRT-4
+Fixes: 08938fe ("procd: add hotplug-call dispatcher")
+Reported-by: Trail of Bits (@trailofbits)
+Signed-off-by: Daniel Golle <daniel@makrotopia.org>
+---
+ hotplug-dispatch.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/hotplug-dispatch.c b/hotplug-dispatch.c
+index f048fcb6..a67ef2d5 100644
+--- a/hotplug-dispatch.c
++++ b/hotplug-dispatch.c
+@@ -232,7 +232,7 @@ static int hotplug_call(struct ubus_context *ctx, struct ubus_object *obj,
+ 		if (!strncmp(enve, "LD_", 3))
+ 			continue;
+ 
+-		if (!strcmp(enve, "PATH"))
++		if (!strncmp(enve, "PATH=", 5))
+ 			continue;
+ 
+ 		if (strlen(enve) < 3)

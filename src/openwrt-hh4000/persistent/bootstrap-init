@@ -1,0 +1,90 @@
+#!/rescue/busybox sh
+# SPDX-License-Identifier: GPL-2.0-only
+export PATH=/rescue:/bin:/sbin:/usr/bin:/usr/sbin
+BB=/rescue/busybox
+fail() {
+ echo "HH_STORAGE_FAILED: $*"
+ echo 'Recovery shell; installed boot settings can be changed at U-Boot.'
+ while :; do "$BB" sh -i; done
+}
+"$BB" mount -t proc proc /proc
+"$BB" mount -t sysfs sysfs /sys
+"$BB" mount -t devtmpfs devtmpfs /dev
+"$BB" mkdir -p /tmp /dev/pts /rom /overlay /newroot
+"$BB" mount -t tmpfs -o mode=1777,size=128m tmpfs /tmp
+"$BB" mount -t devpts devpts /dev/pts
+"$BB" insmod /rescue/hard_watchdog.ko || fail watchdog
+(
+ while :; do printf 'U\n' >/proc/watchdog/info || exit 1; "$BB" sleep 5; done
+) &
+watchdog_pid=$!
+echo HH_STORAGE_BOOTSTRAP
+persist=0
+repartition=0
+for arg in $("$BB" cat /proc/cmdline); do
+ [ "$arg" != hh.persist=1 ] || persist=1
+ [ "$arg" != hh.repartition=1 ] || repartition=1
+done
+if [ "$repartition" = 1 ]; then
+ "$BB" ubiattach /dev/ubi_ctrl -m 2 -d 1 || fail boot-UBI-repartition
+fi
+if [ -r /root.squashfs ]; then
+ echo HH_ROOT_SOURCE=embedded-RAM
+ [ -b /dev/loop0 ] || "$BB" mknod /dev/loop0 b 7 0
+ /rescue/loop-root || fail loop
+ "$BB" mount -t squashfs -o ro /dev/loop0 /rom || fail squashfs-RAM
+else
+ echo HH_ROOT_SOURCE=NAND
+ rootdev=''
+ for n in /sys/class/mtd/mtd[0-9]*; do
+  [ -r "$n/name" ] || continue
+  if [ "$("$BB" cat "$n/name")" = owrt-root ]; then
+   index=${n##*mtd}; rootdev=/dev/mtdblock$index
+   [ -b "$rootdev" ] || "$BB" mknod "$rootdev" b 31 "$index"
+  fi
+ done
+ [ -n "$rootdev" ] || fail root-volume-missing
+ "$BB" mount -t squashfs -o ro "$rootdev" /rom || fail squashfs-NAND
+fi
+if [ "$persist" = 1 ]; then
+ [ "$("$BB" cat /sys/class/ubi/ubi0/mtd_num)" = 3 ] || fail main-UBI-mapping
+ if [ -r /sys/class/mtd/mtd4/name ] && [ "$("$BB" cat /sys/class/mtd/mtd4/name)" = storage ]; then
+  if [ ! -r /sys/class/ubi/ubi1/mtd_num ]; then
+   "$BB" ubiattach /dev/ubi_ctrl -m 2 -d 1 || fail boot-UBI
+  fi
+  [ "$("$BB" cat /sys/class/ubi/ubi1/mtd_num)" = 2 ] || fail boot-UBI-mapping
+  if [ ! -r /sys/class/ubi/ubi2/mtd_num ]; then
+   "$BB" ubiattach /dev/ubi_ctrl -m 4 -d 2 || fail storage-UBI
+  fi
+  [ "$("$BB" cat /sys/class/ubi/ubi2/mtd_num)" = 4 ] || fail storage-UBI-mapping
+  "$BB" mount -t ubifs ubi2:owrt-data /overlay || fail writable-storage-UBIFS
+ else
+  "$BB" mount -t ubifs ubi0:owrt-data /overlay || fail writable-UBIFS
+ fi
+ mode=persistent
+else
+ "$BB" mount -t tmpfs -o size=256m tmpfs /overlay || fail RAM-overlay
+ mode=RAM
+fi
+if [ "$persist" = 1 ] && [ -e /overlay/.hh-factory-reset-v1 ]; then
+ [ "$("$BB" cat /sys/class/ubi/ubi2/mtd_num)" = 4 ] || fail reset-storage-mapping
+ [ "$("$BB" cat /sys/class/ubi/ubi2_0/name)" = owrt-data ] || fail reset-volume-name
+ "$BB" grep -q '^ubi2:owrt-data /overlay ubifs ' /proc/mounts || fail reset-mount
+ . /rescue/reset-data.sh
+ echo HH_FACTORY_RESET_BEGIN
+ hh_reset_data_root /overlay || fail factory-reset-data
+ echo HH_FACTORY_RESET_COMPLETE
+fi
+"$BB" mkdir -p /overlay/upper /overlay/work
+"$BB" mount -t overlay overlay -o lowerdir=/rom,upperdir=/overlay/upper,workdir=/overlay/work /newroot || fail overlay
+for dir in rom overlay proc sys dev tmp; do
+ "$BB" mkdir -p "/newroot/$dir"
+ "$BB" mount --move "/$dir" "/newroot/$dir" || fail "move-$dir"
+done
+printf '%s\n' "$mode" >/newroot/tmp/hh-storage-mode
+printf '%s\n' HH4000_FACTORY_RESET_V1 >/newroot/tmp/hh-factory-reset-capable
+# The new init immediately starts its own feeder before hardware/network setup.
+kill "$watchdog_pid"
+echo "HH_SWITCH_ROOT=$mode"
+exec "$BB" switch_root /newroot /init
+fail switch-root

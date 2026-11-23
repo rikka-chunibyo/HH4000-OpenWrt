@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+"""Run an administrator-authored panel program, reporting failures to LuCI."""
+import json,os,sys,traceback,time,signal
+os.umask(0o077)
+runtime=os.environ.get("HH_PANEL_RUNTIME_DIR","/var/run/hh-frontpanel")
+program=os.path.join(runtime,"program.py")
+def status(running,error=""):
+    path=os.path.join(runtime,"app.new")
+    with open(path,"w",encoding="ascii") as f:json.dump({"running":running,"error":error,"updated":time.time()},f)
+    os.replace(path,os.path.join(runtime,"app.json"))
+def stop(signum,frame):raise SystemExit(0)
+signal.signal(signal.SIGTERM,stop)
+error=""
+try:
+    with open(program,encoding="utf-8") as f:source=f.read(32769)
+    if len(source.encode("utf-8"))>32768:raise ValueError("Program exceeds 32KiB")
+    code=compile(source,program,"exec")
+    status(True)
+    exec(code,{"__name__":"__main__","__file__":program})
+except SystemExit as e:
+    if e.code not in (0,None):error="Program exited: %s" % e.code
+except BaseException as e:
+    error="".join(traceback.format_exception_only(type(e),e))[-2000:]
+    traceback.print_exc()
+finally:
+    status(False,error)

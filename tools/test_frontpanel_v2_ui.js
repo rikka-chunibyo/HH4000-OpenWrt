@@ -1,0 +1,16 @@
+/* Exercise the LuCI view against its normal form/fs/poll interfaces. */
+const fsNative=require('fs'),path=require('path'),assert=require('assert');
+const root=path.resolve(__dirname,'..'),sourceRoot=path.join(root,'src/openwrt-hh4000/files');
+const code=fsNative.readFileSync(path.join(sourceRoot,'www/luci-static/resources/view/system/hh_frontpanel.js'),'utf8');
+String.prototype.format=function(...args){let i=0;return this.replace(/%[sd]/g,()=>String(args[i++]));};
+let options=[],polls=[],elements=[],lastPixels;
+class Option{constructor(name){this.name=name;this.widget={setValue:v=>this.widget.value=v};options.push(this);}value(){return this;}depends(){return this;}getUIElement(){return this.widget;}}
+class Section{tab(){}taboption(tab,type,name){return new Option(name);}option(type,name){return new Option(name);}}
+class Map{section(){return new Section();}lookupOption(name){return options.filter(o=>o.name===name);}render(){for(const o of options)if(o.renderWidget)o.renderWidget();return Promise.resolve({tag:'form'});}}
+function E(tag,attrs,children){const e={tag,attrs:attrs||{},children:children||[],appendChild(x){this.children.push(x);},getContext(){return {createImageData(){return {data:new Uint8ClampedArray(168*42*4)};},putImageData(v){lastPixels=v.data;}};}};elements.push(e);return e;}
+const state={page:'home',settings:{mode:'pages'},screen_on:true,events:2,variables:{lan:'192.168.1.1',wan:'192.0.2.207'},frame_hex:'ff'+'00'.repeat(7055)};
+const fs={read(p){if(p.endsWith('state.json'))return Promise.resolve(JSON.stringify(state));if(p.endsWith('app.json'))return Promise.resolve('{"running":false,"error":""}');return Promise.resolve(fsNative.readFileSync(path.join(sourceRoot,p),'utf8'));},exec(){return Promise.resolve({code:0});}};
+const ui={createHandlerFn(ctx,fn){return fn.bind(ctx);},addNotification(){throw Error('Unexpected notification');}};
+const uci={load(){return Promise.resolve();},sections(){return [{'.name':'home',label:'Home'}];}};
+const view=new Function('view','form','fs','ui','poll','uci','E','_',code)({extend:v=>v},{Map,NamedSection:Section,GridSection:Section,Flag:Option,Value:Option,ListValue:Option,TextValue:Option,DummyValue:Option},fs,ui,{add:f=>polls.push(f)},uci,E,s=>s);
+(async()=>{const data=await view.load();await view.render(data);for(const refresh of polls)await refresh();assert(lastPixels[0]===255&&lastPixels[3]===255);assert(options.find(o=>o.name==='program').validate('main','x'.repeat(32769))!==true);assert(options.find(o=>o.name==='title').validate('main','LAN {lan}')===true);assert(options.filter(o=>o.name==='reset_action').length===1);assert(options.find(o=>o.name==='reset_action').default==='reboot');assert(options.find(o=>o.name==='reset_hold').default==='factory-reset');assert(options.find(o=>o.name==='reset_hold_ms').default==='15000');assert(options.find(o=>o.name==='program').retain===true);const example=elements.find(e=>e.tag==='button'&&e.children==='Load counter example');await example.attrs.click();assert(options.find(o=>o.name==='program').widget.value.includes('panel.publish'));console.log('LuCI view render/preview/examples/validation smoke checks passed');})().catch(e=>{console.error(e);process.exitCode=1;});

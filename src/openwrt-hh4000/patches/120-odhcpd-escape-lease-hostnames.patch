@@ -1,0 +1,78 @@
+Backport OpenWrt odhcpd 68f382690bfaec56d5b1f31c3c31c48bcb642e3a
+GHSA-hhmc-92hw-535f; retain the installed b14cf98c platform behavior.
+
+--- a/src/dhcpv6-ia.c
++++ b/src/dhcpv6-ia.c
+@@ -334,6 +334,46 @@
+ 					"%s/%d ", ipbuf, prefix);
+ }
+ 
++/*
++ * Escape a client-supplied hostname so it is safe to write as a single field
++ * into the space-delimited, line-based state file: every byte that is not a
++ * bare LDH character (the RFC 1035 section 2.3.1 "preferred name syntax" set
++ * accepted by odhcpd_hostname_valid()) is encoded as \xNN. A DHCP client
++ * controls its requested hostname (DHCPv4 option 12, DHCPv6 FQDN option) and,
++ * since DNS labels may carry any octet (RFC 2181 section 11), dn_expand()/the
++ * option parser copy the bytes verbatim - so without escaping a hostname could
++ * embed a newline (forging an extra '#'-prefixed lease record) or a space
++ * (forging additional fields). Valid hostnames are pure LDH and are copied
++ * unchanged. The result is written into dst (always NUL-terminated, truncated
++ * if it would not fit) and returned.
++ */
++static const char *statefiles_escape_hostname(char *dst, size_t dstlen, const char *src)
++{
++	size_t pos = 0;
++
++	if (dstlen == 0)
++		return dst;
++
++	for (const unsigned char *c = (const unsigned char *)src; *c; c++) {
++		if ((*c >= '0' && *c <= '9') ||
++		    (*c >= 'A' && *c <= 'Z') ||
++		    (*c >= 'a' && *c <= 'z') ||
++		    *c == '-' || *c == '_' || *c == '.') {
++			if (pos + 1 >= dstlen)
++				break;
++			dst[pos++] = *c;
++		} else {
++			if (pos + 4 >= dstlen)
++				break;
++			pos += sprintf(&dst[pos], "\\x%02x", *c);
++		}
++	}
++
++	dst[pos] = '\0';
++	return dst;
++}
++
++
+ static void dhcpv6_ia_write_hostsfile(time_t now)
+ {
+ 	struct write_ctxt ctxt;
+@@ -428,6 +468,7 @@
+ 
+ void dhcpv6_ia_write_statefile(void)
+ {
++	char hostbuf[1024];
+ 	struct write_ctxt ctxt;
+ 
+ 	md5_begin(&ctxt.md5);
+@@ -496,7 +537,7 @@
+ 					ctxt.buf_idx = snprintf(ctxt.buf, ctxt.buf_len, "# %s %s %x %s%s %"PRId64" ",
+ 								ctxt.iface->ifname, duidbuf, ntohl(ctxt.c->iaid),
+ 								(ctxt.c->flags & OAF_BROKEN_HOSTNAME) ? "broken\\x20" : "",
+-								(ctxt.c->hostname ? ctxt.c->hostname : "-"),
++								statefiles_escape_hostname(hostbuf, sizeof(hostbuf), ctxt.c->hostname ? ctxt.c->hostname : "-"),
+ 								(ctxt.c->valid_until > now ?
+ 									(int64_t)(ctxt.c->valid_until - now + wall_time) :
+ 									(INFINITE_VALID(ctxt.c->valid_until) ? -1 : 0)));
+@@ -532,7 +573,7 @@
+ 					ctxt.buf_idx = snprintf(ctxt.buf, ctxt.buf_len, "# %s %s ipv4 %s%s %"PRId64" %x 32 ",
+ 								ctxt.iface->ifname, duidbuf,
+ 								(c->flags & OAF_BROKEN_HOSTNAME) ? "broken\\x20" : "",
+-								(c->hostname ? c->hostname : "-"),
++								statefiles_escape_hostname(hostbuf, sizeof(hostbuf), c->hostname ? c->hostname : "-"),
+ 								(c->valid_until > now ?
+ 									(int64_t)(c->valid_until - now + wall_time) :
+ 									(INFINITE_VALID(c->valid_until) ? -1 : 0)),

@@ -1,0 +1,63 @@
+#!/bin/sh
+set -e
+. /lib/functions.sh
+umask 077
+assets=${HH_PANEL_ASSETS:-/usr/share/hh-frontpanel}
+runtime=/var/run/hh-frontpanel
+if [ -e "$runtime" ] || [ -L "$runtime" ]; then
+ [ -d "$runtime" ] && [ ! -L "$runtime" ] && /usr/sbin/hh-frontpanel-run --check-runtime >/dev/null || { echo 'Panel runtime directory must be root-owned and private' >&2; exit 1; }
+else
+ mkdir -m 700 "$runtime"
+fi
+config_load hh_frontpanel
+out=$(mktemp /var/run/hh-frontpanel/config.XXXXXX)
+program=$(mktemp /var/run/hh-frontpanel/program.XXXXXX)
+trap 'rm -f "$out" "$program"' EXIT HUP INT TERM
+emit() { printf '%s\t%s\n' "$1" "$(printf '%s' "$2" | LC_ALL=C tr -cd '\40-\176' | head -c 256)" >>"$out"; }
+value() { config_get val main "$2" "$3"; emit "$1" "$val"; }
+value screen screen 1
+value brightness brightness 60
+value idle idle_timeout 60
+value rotate rotate_seconds 0
+value hold_ms hold_ms 1000
+value reset_hold_ms reset_hold_ms 15000
+value mode mode pages
+value startpage start_page home
+value title title 'OpenWrt HH4000'
+value line1 message_line1 Welcome
+value line2 message_line2 ''
+value main_led main_led status
+value up_led up_led white
+value ok_led ok_led white
+value down_led down_led white
+config_get nav main navigation_leds active
+case "$nav" in always) nav=2;; off) nav=0;; *) nav=1;; esac
+emit navigation_leds "$nav"
+for button in up down ok main reset; do
+ case "$button" in up) default=previous;; down) default=next;; ok) default=select;; main) default=home;; reset) default=reboot;; esac
+ value "${button}_action" "${button}_action" "$default"
+ hold_default=none; [ "$button" != reset ] || hold_default=factory-reset
+ value "${button}_hold" "${button}_hold" "$hold_default"
+done
+pages_started=0
+page_count=0
+page() {
+ local section="$1" enabled val
+ if [ "$pages_started" = 0 ]; then emit pages_begin 1; pages_started=1; fi
+ config_get_bool enabled "$section" enabled 1
+ [ "$enabled" = 1 ] || return 0
+ page_count=$((page_count + 1))
+ emit page "$section"
+ config_get val "$section" label "$section"; emit page_label "$val"
+ config_get val "$section" font normal; emit page_font "$val"
+ config_get val "$section" align center; emit page_align "$val"
+ for line in 1 2 3 4; do config_get val "$section" "line$line" ''; emit "page_line$line" "$val"; done
+}
+config_foreach page page
+[ "$page_count" -le 16 ] || { echo 'At most 16 enabled pages' >&2; exit 1; }
+config_get source main program ''
+if [ -n "$source" ]; then printf '%s\n' "$source" >"$program"; else cat "$assets/example.py" >"$program"; fi
+[ "$(wc -c <"$program")" -le 32768 ] || { echo 'Panel program exceeds 32KiB' >&2; exit 1; }
+mv "$program" /var/run/hh-frontpanel/program.py
+mv "$out" /var/run/hh-frontpanel/config
+trap - EXIT

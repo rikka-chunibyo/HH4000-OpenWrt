@@ -1,0 +1,6 @@
+#!/bin/sh
+# Queue initialization only. UCI/netifd owns all bridge membership.
+set -e
+for port in eth0 eth1 eth2 eth3 eth4; do
+ tmctl porttminit --devtype ETH --if "$port" --flag 1
+done

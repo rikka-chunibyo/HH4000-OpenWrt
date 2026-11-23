@@ -1,0 +1,25 @@
+{
+  "luci-hh-sqm": {
+    "description": "Configure HH4000 FQ-CoDel queue management",
+    "read": {
+      "uci": [
+        "hh_sqm"
+      ],
+      "file": {
+        "/var/run/hh-sqm/state.json": [
+          "read"
+        ]
+      },
+      "ubus": {
+        "file": [
+          "read"
+        ]
+      }
+    },
+    "write": {
+      "uci": [
+        "hh_sqm"
+      ]
+    }
+  }
+}

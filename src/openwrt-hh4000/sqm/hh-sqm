@@ -1,0 +1,88 @@
+#!/usr/bin/python3
+"""Optional FQ-CoDel/HTB service for the retained HH4000 kernel."""
+from pathlib import Path
+import os,sys,json,subprocess,time,stat,re,signal,fcntl,socket,struct
+D=Path('/var/run/hh-sqm');TC='/usr/libexec/tc-tiny';IFB='hh-sqm0';STOP=False
+MODULES=['ifb','sch_fq_codel','act_mirred','cls_u32']
+def cmd(*args):return subprocess.check_output(args,stderr=subprocess.STDOUT,timeout=15).decode(errors='replace')
+def private_dir():
+ if not D.exists() and not D.is_symlink():D.mkdir(mode=0o700)
+ s=D.lstat()
+ if not stat.S_ISDIR(s.st_mode) or s.st_uid!=0 or s.st_mode&0o077:raise RuntimeError('Unsafe SQM runtime directory')
+def write(name,data):
+ f=D/(name+'.new');fd=os.open(f,os.O_WRONLY|os.O_CREAT|os.O_TRUNC|os.O_NOFOLLOW,0o600)
+ with os.fdopen(fd,'w') as out:json.dump(data,out)
+ os.replace(f,D/name)
+def state(status,**extra):write('state.json',{'status':status,'pid':os.getpid(),**extra})
+def option(name,default):
+ p=subprocess.run(['uci','-q','get','hh_sqm.main.'+name],capture_output=True)
+ return p.stdout.decode().strip() if p.returncode==0 else default
+def netlink(kind,attrs=b'',index=0):
+ s=socket.socket(socket.AF_NETLINK,socket.SOCK_RAW,socket.NETLINK_ROUTE);s.bind((0,0));s.settimeout(3)
+ body=struct.pack('BxHiII',0,0,index,0,0)+attrs;s.send(struct.pack('IHHII',16+len(body),kind,5|(0x600 if kind==16 and not index else 0),1,0)+body);r=s.recv(4096);s.close();e=struct.unpack_from('i',r,16)[0]
+ if e:raise RuntimeError(os.strerror(-e))
+def attr(kind,data):
+ n=len(data)+4;return struct.pack('HH',n,kind)+data+bytes((-n)%4)
+def restore():
+ f=D/'original.json'
+ if not f.exists():return
+ old=json.loads(f.read_text());dev=old['device']
+ if Path('/sys/class/net',dev).exists():
+  q=cmd(TC,'qdisc','show','dev',dev)
+  if old['download'] and 'ingress ffff:' in q:subprocess.run([TC,'qdisc','del','dev',dev,'ingress'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+  if old['upload'] and 'htb 1:' in q:subprocess.run([TC,'qdisc','del','dev',dev,'root'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+ if old['download'] and Path('/sys/class/net',IFB).exists():netlink(17,index=socket.if_nametoindex(IFB))
+ cmd('fcctl','flush');cmd('fcctl','config','--hw-accel','1' if old['hardware'] else '0');cmd('fcctl','enable' if old['learning'] else 'disable');f.unlink()
+def config():
+ network=option('network','wan');dev=option('device','');up=int(option('upload','0'));down=int(option('download','0'))
+ if not 0<=up<=10000000 or not 0<=down<=10000000 or not up+down:raise RuntimeError('Set a nonzero upload or download rate')
+ if not dev:
+  if not re.fullmatch(r'[A-Za-z0-9_]{1,32}',network):raise RuntimeError('Invalid network name')
+  info=json.loads(cmd('ubus','call','network.interface.'+network,'status'));dev=info.get('l3_device') or info.get('device','')
+ if dev=='lo' or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.:-]{0,14}',dev) or not Path('/sys/class/net',dev).exists():raise RuntimeError('Selected network device is unavailable')
+ return dev,up,down
+def apply(dev,up,down):
+ if cmd('uname','-r').strip()!='4.1.52-5.02L.07':raise RuntimeError('Unsupported kernel ABI')
+ for m in MODULES:
+  if not Path('/sys/module',m).exists():cmd('insmod','/lib/modules/4.1.52-5.02L.07/'+m+'.ko',*(['numifbs=0'] if m=='ifb' else []))
+ q=cmd(TC,'qdisc','show','dev',dev)
+ if ('pfifo_fast' not in q and 'noqueue' not in q and q.strip()) or 'ingress' in q:raise RuntimeError('Device already has a custom queue configuration')
+ if down and Path('/sys/class/net',IFB).exists():raise RuntimeError('SQM ingress device is already in use')
+ fc=cmd('fcctl','status');write('original.json',{'device':dev,'upload':up,'download':down,'hardware':'HW Acceleration <Enabled>' in fc,'learning':'Flow Learning Enabled' in fc})
+ cmd('fcctl','disable');cmd('fcctl','config','--hw-accel','0');cmd('fcctl','flush')
+ if down:netlink(16,attr(3,IFB.encode()+bytes(1))+attr(18,attr(1,b'ifb'+bytes(1))));cmd('ip','link','set',IFB,'up')
+ for target,rate in [(dev,up),(IFB,down)]:
+  if not rate:continue
+  cmd(TC,'qdisc','add','dev',target,'root','handle','1:','htb','default','10');cmd(TC,'class','add','dev',target,'parent','1:','classid','1:10','htb','rate',str(rate)+'kbit','ceil',str(rate)+'kbit','burst','32k','cburst','32k');cmd(TC,'qdisc','add','dev',target,'parent','1:10','handle','110:','fq_codel','limit','1024','target','5ms','interval','100ms','ecn')
+ if down:cmd(TC,'qdisc','add','dev',dev,'handle','ffff:','ingress');cmd(TC,'filter','add','dev',dev,'parent','ffff:','protocol','all','u32','match','u32','0','0','action','mirred','egress','redirect','dev',IFB)
+ state('running',device=dev,upload=up,download=down,acceleration_paused=True)
+def stop(_sig,_frame):
+ global STOP;STOP=True
+os.umask(0o077);private_dir();action=sys.argv[1] if len(sys.argv)>1 else 'status'
+if action=='status':print((D/'state.json').read_text() if (D/'state.json').exists() else '{"status":"disabled"}');sys.exit(0)
+fd=os.open(D/'lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600)
+try:
+ try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+ except BlockingIOError:
+  if action=='recover':sys.exit(0)
+  end=time.monotonic()+8
+  while True:
+   try:fcntl.flock(fd,fcntl.LOCK_EX|fcntl.LOCK_NB);break
+   except BlockingIOError:
+    if time.monotonic()>=end:raise RuntimeError('SQM is already running')
+    time.sleep(.1)
+ restore()
+ if action in ('recover','quiesce'):state('disabled');sys.exit(0)
+ if action!='run':raise RuntimeError('Usage: hh-sqm status|recover|quiesce|run')
+ if option('enabled','0')!='1':state('disabled');sys.exit(0)
+ signal.signal(signal.SIGTERM,stop);signal.signal(signal.SIGINT,stop);error=None
+ try:
+  dev,up,down=config();apply(dev,up,down)
+  while not STOP:
+   if not Path('/sys/class/net',dev).exists():raise RuntimeError('Selected network device disappeared')
+   time.sleep(.5)
+ except Exception as e:error=str(e)
+ finally:
+  restore();state('error' if error else 'disabled',**({'error':error[:256]} if error else {}))
+ if error:raise RuntimeError(error)
+finally:os.close(fd)

@@ -1,0 +1,11 @@
+Component	RAM address	Status
+Signed GSDF firmware	0x01000000	Confirmed
+Linux kernel	0x0101F000	Confirmed
+SquashFS rootfs	0x014F7000	Confirmed
+Device tree	0x03A24000	Confirmed
+
+
+
+
+mount -t proc proc /proc
+mount -t sysfs sysfs /sys

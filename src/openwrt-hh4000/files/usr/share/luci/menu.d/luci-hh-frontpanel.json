@@ -1,0 +1,18 @@
+{
+  "admin/system/hh_frontpanel": {
+    "title": "Front Panel",
+    "order": 65,
+    "action": {
+      "type": "view",
+      "path": "system/hh_frontpanel"
+    },
+    "depends": {
+      "acl": [
+        "luci-hh-frontpanel"
+      ],
+      "uci": {
+        "hh_frontpanel": true
+      }
+    }
+  }
+}

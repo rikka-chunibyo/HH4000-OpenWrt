@@ -1,0 +1,33 @@
+#!/bin/sh
+# Full reset is performed by the verified bootstrap before mounting overlayfs.
+set -eu
+umask 077
+check() {
+ [ "$(cat /tmp/hh-storage-mode)" = persistent ] || return 1
+ [ "$(cat /tmp/hh-factory-reset-capable)" = HH4000_FACTORY_RESET_V1 ] || return 1
+ [ "$(cat /rom/etc/hh-factory-reset-capable)" = HH4000_FACTORY_RESET_V1 ] || return 1
+ [ "$(cat /sys/class/ubi/ubi2/mtd_num)" = 4 ] || return 1
+ [ "$(cat /sys/class/ubi/ubi2_0/name)" = owrt-data ] || return 1
+ grep -q '^ubi2:owrt-data /overlay ubifs ' /proc/mounts
+}
+case "${1:---check}" in
+ --check|--dry-run) check || exit 1; echo 'Full factory reset supported: erase data on next boot; keep firmware and calibration';;
+ --reboot)
+  logger -t hh-reset 'Physical RESET short press: reboot requested'
+  echo HH_RESET_SHORT_PRESS_REBOOT >/dev/console
+  ubus call system reboot '{}' || reboot
+ ;;
+ --request)
+  check || exit 1
+  marker=$(mktemp /overlay/.hh-reset-request.XXXXXX)
+  trap 'rm -f "$marker"' EXIT HUP INT TERM
+  printf '%s\n' HH4000_FACTORY_RESET_V1 >"$marker"
+  mv "$marker" /overlay/.hh-factory-reset-v1
+  trap - EXIT
+  sync
+  echo HH_RESET_FACTORY_REQUEST >/dev/console
+  logger -t hh-factory-reset 'Full factory reset requested by physical hold; rebooting'
+  ubus call system reboot '{}' || reboot
+ ;;
+ *) echo 'Usage: hh-factory-reset --check|--dry-run|--request' >&2; exit 2;;
+esac

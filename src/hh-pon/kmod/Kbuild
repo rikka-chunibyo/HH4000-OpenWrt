@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Out-of-tree build:
+#   make -C <kernel> M=$PWD/kmod ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+# Add ccflags-y += -DHH_PON_WITH_XRDP once an XRDP Runner driver provides xrdp-pon.h.
+obj-m += hh_pon.o
+hh_pon-y := hh_pon_main.o hh_ploam.o hh_gpon_fsm.o
+ccflags-y += -I$(src)/../core -I$(src)/../include
+# core/ sources are shared with the host tests; copied in by the Makefile 'kmod' target

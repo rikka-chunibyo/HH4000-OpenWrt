@@ -1,0 +1,11 @@
+#!/bin/sh
+# Apply the normal fw3 policy, then invalidate vendor fast-path decisions.
+/usr/libexec/hh-fw3 "$@"
+rc=$?
+for arg in "$@"; do
+ case "$arg" in start|stop|restart|reload|flush)
+  /usr/libexec/hh-flow-flush || rc=1
+  break;;
+ esac
+done
+exit "$rc"

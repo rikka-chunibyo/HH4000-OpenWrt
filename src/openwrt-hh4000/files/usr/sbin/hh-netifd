@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /sbin/netifd -S -h /sbin/hotplug-call -s /var/run/ubus/ubus.sock >>/tmp/hh-netifd.log 2>&1

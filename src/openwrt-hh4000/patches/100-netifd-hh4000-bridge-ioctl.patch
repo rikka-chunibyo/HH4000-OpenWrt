@@ -1,0 +1,144 @@
+--- a/system-linux.c
++++ b/system-linux.c
+@@ -1490,87 +1490,62 @@
+ 	return (unsigned long) val * 100;
+ }
+ 
++/* HH4000 vendor kernel: RTM_NEWLINK bridge attributes panic validate_nla.
++ * Keep netifd's normal ownership/membership model, using the legacy API only
++ * for bridge creation and its matching sysfs configuration interface.
++ */
++static int hh_bridge_attr(const char *ifname, const char *name, uint64_t value,
++                          bool optional)
++{
++ char path[256], buf[32];
++ int fd, len, err;
++ snprintf(path, sizeof(path), "/sys/class/net/%s/bridge/%s", ifname, name);
++ fd = open(path, O_WRONLY | O_CLOEXEC);
++ if (fd < 0)
++  return optional && errno == ENOENT ? 0 : -errno;
++ len = snprintf(buf, sizeof(buf), "%llu\n", (unsigned long long)value);
++ err = write(fd, buf, len) == len ? 0 : -errno;
++ close(fd);
++ return err;
++}
++
+ int system_bridge_addbr(struct device *bridge, struct bridge_config *cfg)
+ {
+-	struct nlattr *linkinfo, *data;
+-	struct nl_msg *msg;
+-	uint64_t val;
+-	int rv;
+-
+-	msg = system_ifinfo_msg(bridge->ifname, RTM_NEWLINK, NLM_F_CREATE | NLM_F_EXCL);
+-	if (!msg)
+-		return -1;
+-
+-	if (!(linkinfo = nla_nest_start(msg, IFLA_LINKINFO)))
+-		goto nla_put_failure;
+-
+-	nla_put_string(msg, IFLA_INFO_KIND, "bridge");
+-
+-	if (!(data = nla_nest_start(msg, IFLA_INFO_DATA)))
+-		goto nla_put_failure;
+-
+-	nla_put_u32(msg, IFLA_BR_STP_STATE, cfg->stp);
+-	nla_put_u32(msg, IFLA_BR_FORWARD_DELAY, sec_to_jiffies(cfg->forward_delay));
+-	nla_put_u8(msg, IFLA_BR_MCAST_SNOOPING, !!cfg->igmp_snoop);
+-	nla_put_u8(msg, IFLA_BR_MCAST_QUERIER, !!cfg->multicast_querier);
+-	nla_put_u32(msg, IFLA_BR_MCAST_HASH_MAX, cfg->hash_max);
+-
+-	if (bridge->settings.flags & DEV_OPT_MULTICAST_ROUTER)
+-		nla_put_u8(msg, IFLA_BR_MCAST_ROUTER, !!bridge->settings.multicast_router);
+-
+-	if (cfg->flags & BRIDGE_OPT_ROBUSTNESS) {
+-		nla_put_u32(msg, IFLA_BR_MCAST_STARTUP_QUERY_CNT, cfg->robustness);
+-		nla_put_u32(msg, IFLA_BR_MCAST_LAST_MEMBER_CNT, cfg->robustness);
+-	}
+-
+-	if (cfg->flags & BRIDGE_OPT_QUERY_INTERVAL)
+-		nla_put_u64(msg, IFLA_BR_MCAST_QUERY_INTVL, cfg->query_interval);
+-
+-	if (cfg->flags & BRIDGE_OPT_QUERY_RESPONSE_INTERVAL)
+-		nla_put_u64(msg, IFLA_BR_MCAST_QUERY_RESPONSE_INTVL, cfg->query_response_interval);
+-
+-	if (cfg->flags & BRIDGE_OPT_LAST_MEMBER_INTERVAL)
+-		nla_put_u64(msg, IFLA_BR_MCAST_LAST_MEMBER_INTVL, cfg->last_member_interval);
+-
+-	if (cfg->flags & BRIDGE_OPT_ROBUSTNESS ||
+-	    cfg->flags & BRIDGE_OPT_QUERY_INTERVAL ||
+-	    cfg->flags & BRIDGE_OPT_QUERY_RESPONSE_INTERVAL) {
+-		val = cfg->robustness * cfg->query_interval +
+-			cfg->query_response_interval;
+-
+-		nla_put_u64(msg, IFLA_BR_MCAST_MEMBERSHIP_INTVL, val);
+-
+-		val -= cfg->query_response_interval / 2;
+-
+-		nla_put_u64(msg, IFLA_BR_MCAST_QUERIER_INTVL, val);
+-	}
+-
+-	if (cfg->flags & BRIDGE_OPT_QUERY_INTERVAL) {
+-		val = cfg->query_interval / 4;
+-
+-		nla_put_u64(msg, IFLA_BR_MCAST_STARTUP_QUERY_INTVL, val);
+-	}
+-
+-	nla_put_u8(msg, IFLA_BR_VLAN_FILTERING, !!cfg->vlan_filtering);
+-	nla_put_u16(msg, IFLA_BR_PRIORITY, cfg->priority);
+-	nla_put_u32(msg, IFLA_BR_HELLO_TIME, sec_to_jiffies(cfg->hello_time));
+-	nla_put_u32(msg, IFLA_BR_MAX_AGE, sec_to_jiffies(cfg->max_age));
+-
+-	if (cfg->flags & BRIDGE_OPT_AGEING_TIME)
+-		nla_put_u32(msg, IFLA_BR_AGEING_TIME, sec_to_jiffies(cfg->ageing_time));
+-
+-	nla_nest_end(msg, data);
+-	nla_nest_end(msg, linkinfo);
+-
+-	rv = system_rtnl_call(msg);
+-	if (rv)
+-		D(SYSTEM, "Error adding bridge '%s': %d", bridge->ifname, rv);
+-
+-	return rv;
+-
+-nla_put_failure:
+-	nlmsg_free(msg);
+-	return -ENOMEM;
++ int rv;
++ /* VLAN filtering needs separate vendor-kernel validation. Fail safely. */
++ if (cfg->vlan_filtering)
++  return -EOPNOTSUPP;
++ if (ioctl(sock_ioctl, SIOCBRADDBR, bridge->ifname) < 0)
++  return -errno;
++#define HH_BR_ATTR(name, value, optional) do { \
++ rv = hh_bridge_attr(bridge->ifname, name, value, optional); \
++ if (rv) goto failed; \
++} while (0)
++ HH_BR_ATTR("forward_delay", sec_to_jiffies(cfg->forward_delay), false);
++ HH_BR_ATTR("hello_time", sec_to_jiffies(cfg->hello_time), false);
++ HH_BR_ATTR("max_age", sec_to_jiffies(cfg->max_age), false);
++ HH_BR_ATTR("priority", cfg->priority, false);
++ HH_BR_ATTR("multicast_snooping", !!cfg->igmp_snoop, true);
++ HH_BR_ATTR("multicast_querier", !!cfg->multicast_querier, true);
++ HH_BR_ATTR("hash_max", cfg->hash_max, true);
++ if (cfg->flags & BRIDGE_OPT_AGEING_TIME)
++  HH_BR_ATTR("ageing_time", sec_to_jiffies(cfg->ageing_time), false);
++ if (cfg->flags & BRIDGE_OPT_QUERY_INTERVAL)
++  HH_BR_ATTR("multicast_query_interval", cfg->query_interval, false);
++ if (cfg->flags & BRIDGE_OPT_QUERY_RESPONSE_INTERVAL)
++  HH_BR_ATTR("multicast_query_response_interval", cfg->query_response_interval, false);
++ if (cfg->flags & BRIDGE_OPT_LAST_MEMBER_INTERVAL)
++  HH_BR_ATTR("multicast_last_member_interval", cfg->last_member_interval, false);
++ if (cfg->flags & BRIDGE_OPT_ROBUSTNESS) {
++  HH_BR_ATTR("multicast_startup_query_count", cfg->robustness, false);
++  HH_BR_ATTR("multicast_last_member_count", cfg->robustness, false);
++ }
++ HH_BR_ATTR("stp_state", !!cfg->stp, false);
++#undef HH_BR_ATTR
++ return 0;
++failed:
++ system_bridge_delbr(bridge);
++ return rv;
+ }
+ 
+ int system_macvlan_add(struct device *macvlan, struct device *dev, struct macvlan_config *cfg)

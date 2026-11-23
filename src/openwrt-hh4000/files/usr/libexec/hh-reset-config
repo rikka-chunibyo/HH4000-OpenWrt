@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+. /lib/functions.sh
+umask 077
+runtime=/var/run/hh-reset
+if [ -e "$runtime" ] || [ -L "$runtime" ]; then
+ [ -d "$runtime" ] && [ ! -L "$runtime" ] && /usr/sbin/hh-reset-run --check-runtime || exit 1
+else mkdir -m 700 "$runtime"; fi
+config_load hh_frontpanel
+config_get hold main reset_hold_ms 15000
+case "$hold" in ''|*[!0-9]*) hold=15000;; esac
+[ "$hold" -ge 5000 ] && [ "$hold" -le 60000 ] || hold=15000
+config_get action main reset_hold factory-reset
+factory=0; [ "$action" != factory-reset ] || factory=1
+config_get tap main reset_action reboot
+reboot=0; [ "$tap" != reboot ] || reboot=1
+out=$(mktemp "$runtime/config.XXXXXX")
+printf 'hold_ms %s\nfactory %s\ntap_reboot %s\n' "$hold" "$factory" "$reboot" >"$out"
+mv "$out" "$runtime/config"

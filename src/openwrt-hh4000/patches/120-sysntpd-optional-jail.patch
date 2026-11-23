@@ -1,0 +1,11 @@
+--- a/etc/init.d/sysntpd
++++ b/etc/init.d/sysntpd
+@@ -70,7 +70,7 @@
+ 		procd_append_param command -p $peer
+ 	done
+ 	procd_set_param respawn
+-	[ -x /sbin/ujail -a -e /etc/capabilities/ntpd.json ] && {
++	[ -x /sbin/ujail -a -e /etc/capabilities/ntpd.json -a -e /proc/self/ns/pid -a -e /proc/self/ns/ipc -a -e /proc/self/ns/uts ] && {
+ 		procd_add_jail ntpd ubus
+ 		procd_add_jail_mount "$HOTPLUG_SCRIPT"
+ 		procd_add_jail_mount "/usr/share/libubox/jshn.sh"

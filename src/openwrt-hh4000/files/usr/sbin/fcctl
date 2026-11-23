@@ -1,0 +1,2 @@
+#!/bin/sh
+exec /vendor/lib/ld-linux.so.3 --library-path /vendor/lib:/vendor/usr/lib /vendor/usr/bin/fcctl "$@"

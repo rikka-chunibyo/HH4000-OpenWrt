@@ -1,0 +1,15 @@
+{
+  "admin/network/hh_sqm": {
+    "title": "SQM",
+    "order": 65,
+    "action": {
+      "type": "view",
+      "path": "network/hh_sqm"
+    },
+    "depends": {
+      "acl": [
+        "luci-hh-sqm"
+      ]
+    }
+  }
+}

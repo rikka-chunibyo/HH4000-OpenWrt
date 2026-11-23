@@ -1,0 +1,37 @@
+# HH4000 research docs
+
+Start with the [platform overview](00-overview.md). The reports below
+describe lab results and refer to local captures and builds under
+the ignored work, raw, and ref directories.
+
+- [Bell Home Hub 4000 (Sagemcom F@ST 5689): Reverse-Engineering Overview](00-overview.md)
+- [Ethernet subsystem (Bell Home Hub 4000 / Sagemcom F@ST 5689 / BCM6858)](02-ethernet.md)
+- [Peripherals: OLED screen, buttons, EFM8 MCU, LEDs, GPIO map, I2C, sensors, USB, watchdog, voice](04-peripherals.md)
+- [Operating System & Userspace (HH4000 / FAST5689 / BCM6858)](05-os-and-userspace.md)
+- [WiFi (HH4000 / FAST5689 / BCM6858)](06-wifi.md)
+- [OpenWrt Porting Roadmap (consolidated)](07-openwrt-roadmap.md)
+- [Prior art: open-source PON work and what carries over to the HH4000](09-prior-art.md)
+- [Physical hardware identification and upstream (Linux / OpenWrt / U-Boot) status](10-hardware-and-upstream.md)
+- [XRDP Runner packet datapath (BCM6858): a spec for an open driver](11-xrdp-runner.md)
+- [Stock display library and reuse investigation](20-display-library.md)
+- [OpenWrt RAM stage 1: preparation and resume checkpoint](21-openwrt-ram-stage1.md)
+- [Buttons and button LEDs: live verification](22-buttons-and-leds.md)
+- [OpenWrt Ethernet and Wi-Fi: live bring-up results](23-openwrt-network-bringup.md)
+- [OpenWrt LuCI Web UI on the HH4000 RAM image](24-openwrt-luci.md)
+- [OpenWrt network integration: five Ethernet ports and three radios](25-openwrt-network-integration.md)
+- [Native LuCI/UCI LAN configuration](26-lan-configuration.md)
+- [Optical Ethernet audit (parked)](28-optical-ethernet-audit.md)
+- [Configurable OpenWrt front panel](29-openwrt-front-panel.md)
+- [Persistent OpenWrt installation](30-installed-openwrt.md)
+- [Reclaiming legacy NAND storage](31-storage-reclamation.md)
+- [Separate firmware and data partitions](32-separated-firmware-data.md)
+- [nftables backport assessment](33-nftables-backport-assessment.md)
+- [Configurable Ethernet WAN, firewall3 and hardware NAT](34-wan-firewall-hardware-nat.md)
+- [Everyday-use startup and network validation](35-everyday-use-readiness.md)
+- [Configurable and programmable front panel](36-programmable-front-panel.md)
+- [Reset button investigation](38-reset-button.md)
+- [Configurable rear RESET and full factory reset](39-configurable-reset-and-factory-reset.md)
+- [10G cable insertion restart investigation](41-eth4-cable-restart-investigation.md)
+- [Direct-power network validation and optional VPN/SQM](42-network-validation-vpn-sqm.md)
+- [Data-preserving firmware update workflow](43-data-preserving-firmware-updates.md)
+- [RJ11 / FXS voice feasibility audit](44-rj11-voice-feasibility.md)

@@ -1,0 +1,7 @@
+#!/bin/sh
+# Device numbering is discovered from the running vendor driver.
+major=$(awk '$2 == "fcache" { print $1 }' /proc/devices)
+[ -n "$major" ] || exit 0
+[ -c /dev/fcache ] || mknod /dev/fcache c "$major" 0
+chmod 600 /dev/fcache
+exec /usr/sbin/fcctl flush

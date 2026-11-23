@@ -1,0 +1,22 @@
+#!/rescue/busybox sh
+# SPDX-License-Identifier: GPL-2.0-only
+export PATH=/usr/sbin:/usr/bin:/sbin:/bin
+BB=/rescue/busybox
+if [ -w /proc/watchdog/info ]; then
+ (
+  while :; do printf 'U\n' >/proc/watchdog/info || exit 1; "$BB" sleep 5; done
+ ) &
+ echo HH_WATCHDOG_FEEDER_PID=$!
+else
+ echo HH_WATCHDOG_FAILED
+fi
+/bin/busybox echo HH_OPENWRT_BUSYBOX_OK
+echo HH_OPENWRT_STORAGE_READY
+printf 'Storage mode: '; cat /tmp/hh-storage-mode
+/usr/sbin/hh-network-start >/tmp/hh-network-start.log 2>&1 &
+echo HH_NETWORK_START_PID=$!
+while :; do
+ echo 'OpenWrt console. The system and network services run independently.'
+ /bin/sh -i
+ "$BB" sh -i
+done

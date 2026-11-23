@@ -1,0 +1,20 @@
+--- a/etc/init.d/dnsmasq
++++ b/etc/init.d/dnsmasq
+@@ -1259,6 +1259,8 @@
+ 	[ -n "$instance_ifc" ] && network_get_device instance_netdev "$instance_ifc" &&
+ 		[ -n "$instance_netdev" ] && procd_set_param netdev $instance_netdev
+ 
++	# The retained vendor kernel has no mount namespaces.
++	if [ -e /proc/self/ns/pid -a -e /proc/self/ns/ipc -a -e /proc/self/ns/uts ]; then
+ 	procd_add_jail dnsmasq ubus log
+ 	procd_add_jail_mount $CONFIGFILE $DHCPBOGUSHOSTNAMEFILE $DHCPSCRIPT $DHCPSCRIPT_DEPENDS
+ 	procd_add_jail_mount $EXTRA_MOUNT $RFC6761FILE $TRUSTANCHORSFILE
+@@ -1270,6 +1272,8 @@
+ 		procd_add_jail_mount_rw "$logfacility"
+ 	esac
+ 	[ -e "$hostsfile" ] && procd_add_jail_mount $hostsfile
++
++	fi
+ 
+ 	procd_close_instance
+ }
