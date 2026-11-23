@@ -5,7 +5,7 @@ and what current mainline Linux, OpenWrt and U-Boot support for each BCM6858 blo
 against our local evidence.
 
 Legend: **[V]** verified (link, fetched source file, or local file/log line), **[I]** inferred,
-**[U]** unverified / not visible. `$P` = `/path/to/HH4000-OpenWRT`.
+**[U]** unverified / not visible. `$P` = `/path/to/HH4000-OpenWrt`.
 
 Local artefacts from this pass (all under `$P/work/hw/`):
 - `fccid_VW3FAST5689.html`, `fccid_VW3FAST5689E.html`: fccid.io listing pages.

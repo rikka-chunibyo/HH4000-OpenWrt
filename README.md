@@ -1,4 +1,4 @@
-# HH4000-OpenWRT
+# HH4000-OpenWrt
 
 OpenWrt integration and firmware research for the Bell Home Hub 4000
 (Sagemcom FAST5689, BCM6858). The tested configuration pairs OpenWrt

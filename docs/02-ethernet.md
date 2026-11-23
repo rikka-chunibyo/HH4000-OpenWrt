@@ -2,7 +2,7 @@
 
 Scope: the four 1G copper ports, the 10G copper port (eth4), the BCM6858 LPORT block (XLMAC + QEGPHY + Merlin SerDes), MDIO, the external 10G PHY, the Runner (XRDP) datapath and the Broadcom driver stack (bcm_enet impl7, rdpa, bdmf, pktflow/pktrunner), how the WAN is selected, and what an OpenWrt port would need.
 
-Paths below are relative to `/path/to/HH4000-OpenWRT` (`$P`). Scratch work and artifacts are in `$P/work/eth/`.
+Paths below are relative to `/path/to/HH4000-OpenWrt` (`$P`). Scratch work and artifacts are in `$P/work/eth/`.
 
 Labels used throughout:
 - **[V] Verified**: backed by a cited file, symbol, offset, string or log line.

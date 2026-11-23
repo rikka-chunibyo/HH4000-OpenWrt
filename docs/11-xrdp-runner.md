@@ -6,7 +6,7 @@ with bit fields, the block init order, Runner firmware loading, CPU RX/TX rings 
 buffer management, interrupts, the PON differences, and a plan with effort estimates.
 Companion docs: [02-ethernet.md](02-ethernet.md) (ports, LPORT/MAC/PHY), 08-pon-reimplementation.md §2 (RU register database).
 
-Paths are relative to `$P=/path/to/HH4000-OpenWRT`. Labels: **[V]** verified (file, symbol,
+Paths are relative to `$P=/path/to/HH4000-OpenWrt`. Labels: **[V]** verified (file, symbol,
 offset or log line cited), **[I]** inferred, **[U]** unknown/open. This is static analysis only; nothing
 here has been run on the router.
 

@@ -3,7 +3,7 @@
 Target: Bell Home Hub 4000 (Sagemcom F@ST 5689, "SagemcomFast5689_Bell"), BCM6858, stock kernel 4.1.52-5.02L.07 (arm64 kernel, 32-bit ARM userspace).
 
 **Legend.** **[V]** = verified, with the file, symbol, offset or log line cited. **[I]** = inferred, with the reasoning given. **[U]** = unknown or needs hardware testing.
-`$P` = `/path/to/HH4000-OpenWRT`. Scratch, scripts and decompiles are in `$P/work/periph/`. In that tree:
+`$P` = `/path/to/HH4000-OpenWrt`. Scratch, scripts and decompiles are in `$P/work/periph/`. In that tree:
 - `dec/*.c` holds the Ghidra output and `dis/*.dis` the objdump output.
 - `efm8.bin`/`efm8.dis` is the MCU image, `decodebsp.py` the GPIO-table decoder and `bsp_bell_gpio.txt` its output.
 - `uboot_dtb.dts` is the DTB embedded in the Sagemcom U-Boot (new in pass 2).

@@ -3,7 +3,7 @@
 Scope: radios, chips, PCIe mapping, dongle firmware, NVRAM/calibration, country
 code, driver stack (dhd/wfd/cfg80211/hostapd), mesh/Plume, OpenWrt feasibility,
 and porting DHD to a modern kernel. Legend: **[V]** Verified (path/log/source cited) ·
-**[I]** Inferred · **[U]** Unverified / unknown. `$P` = `/path/to/HH4000-OpenWRT`.
+**[I]** Inferred · **[U]** Unverified / unknown. `$P` = `/path/to/HH4000-OpenWrt`.
 
 **Pass-2 summary:**
 - **Three BCM43684 B0** FullMAC dongles, one per PCIe RC: **wl0 = 2.4 GHz**, and **wl1/wl2 = 5 GHz** split into upper and lower sub-bands, all 4x4. There is no 6 GHz radio on the HH4000 [V].

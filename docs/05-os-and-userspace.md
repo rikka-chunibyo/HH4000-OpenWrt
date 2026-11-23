@@ -8,7 +8,7 @@ Model strings `FAST5689` / `Home Hub` / `SGC821012E` (Verified: strings in
 `usr/bin/hg6d`, rootfs `/etc`).
 
 Legend: **[V]** Verified (path/string/log/source cited) · **[I]** Inferred · **[U]** Unverified / unknown.
-`$P` = `/path/to/HH4000-OpenWRT`. Pass-2 scratch: `$P/work/os/pass2/`, scripts `$P/work/os/scripts/OS_*`.
+`$P` = `/path/to/HH4000-OpenWrt`. Pass-2 scratch: `$P/work/os/pass2/`, scripts `$P/work/os/scripts/OS_*`.
 
 **Pass-2 summary (the three questions that matter for a homelab OpenWrt build):**
 1. **Kernel rebuild from the ASUS-Merlin GPL tree: not possible as a bootable 6858 kernel, but works for out-of-tree modules.** The Merlin 4.1.52 tree has the core kernel and `CONFIG_BCM96858`. It ships the board, PMC, PCIe host, arm64 setup and other BSP drivers only as **BCM4908-built prebuilt `.o` files** (RT-AX86U/GT-AXE11000 `hnd_extra/prebuilt/`), with no source. Modules built from it against the stock config are **ABI-compatible** for every structure checked once one ASUS-only `nf_conn` field is removed, and the vermagic matches exactly (§7) [V].

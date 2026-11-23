@@ -22,7 +22,7 @@ treating it as a generic OpenWrt target sysupgrade image.
 Use a fresh build/output directory for each candidate:
 
 ```sh
-cd /path/to/HH4000-OpenWRT
+cd /path/to/HH4000-OpenWrt
 python3 tools/build_openwrt_persistent.py --output work/my-update
 python3 tools/hh_firmware_update.py prepare \
   --build work/my-update \
