@@ -1,5 +1,7 @@
 # HH4000 research docs
 
+For setup and updates, see the [installation guide](../INSTALL.md).
+
 Start with the [platform overview](00-overview.md). The reports below
 describe lab results and refer to local captures and builds under
 the ignored work, raw, and ref directories.

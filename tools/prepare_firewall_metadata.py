@@ -40,10 +40,11 @@ def apply(root):
  version='4.1.52~hh4000-1'
  kernel='Package: kernel\nVersion: '+version+'\nDepends: libc\nArchitecture: aarch64_generic\nDescription: Retained HH4000 vendor 4.1.52-5.02L.07 kernel\n'
  providers=['kmod-ipt-core','kmod-ipt-conntrack','kmod-nf-conntrack','kmod-nf-conntrack6','kmod-ipt-nat','kmod-nf-nat','kmod-ip6tables']
- vendor='Package: hh4000-netfilter\nVersion: 1.0\nDepends: kernel (= '+version+')\nProvides: '+', '.join(providers)+'\nArchitecture: aarch64_generic\nDescription: Verified stock-ABI netfilter modules and HH4000 firewall integration\n'
+ vendor='Package: hh4000-netfilter\nVersion: 1.1\nDepends: libxtables12, kernel (= '+version+')\nProvides: '+', '.join(providers)+'\nArchitecture: aarch64_generic\nDescription: Verified stock-ABI netfilter modules and HH4000 firewall integration\n'
  for n,c in [('kernel',kernel),('hh4000-netfilter',vendor)]:
   kept.append(c+'Status: install '+('hold' if n=='kernel' else 'ok')+' installed\n');(info/(n+'.control')).write_text(c)
-  files=['/lib/modules/4.1.52-5.02L.07/'+m+'.ko' for m in json.loads((P/'work/wan-firewall/stock-module-order.json').read_text())+['xt_comment']] if n!='kernel' else []
+  files=['/lib/modules/4.1.52-5.02L.07/'+m+'.ko' for m in json.loads((P/'work/wan-firewall/stock-module-order.json').read_text())+['xt_comment','xt_SKIPLOG']] if n!='kernel' else []
+  if n=='hh4000-netfilter':files+=['/usr/lib/iptables/libxt_SKIPLOG.so','/usr/libexec/hh-vpn-offload']
   (info/(n+'.list')).write_text('\n'.join(files)+'\n')
  pinned={'kernel','netifd','procd','base-files','busybox','dnsmasq','firewall'}
  for index,b in enumerate(kept):

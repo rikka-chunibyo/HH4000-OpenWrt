@@ -7,6 +7,7 @@ Without --lab all radios default to disabled until WPA2 credentials are supplied
 """
 from pathlib import Path
 from local_build_inputs import require_overlay_binaries
+from build_skiplog import build as build_skiplog
 import argparse,shutil,subprocess,gzip,json,hashlib,os
 P=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser();parser.add_argument('--lab',action='store_true');args=parser.parse_args()
@@ -14,9 +15,18 @@ O=P/'work/openwrt-integrate';R=O/'rootfs';O.mkdir(parents=True,exist_ok=True)
 seed=R if R.exists() else P/'work/openwrt-net/rootfs'
 if not seed.is_dir():
  raise SystemExit('Run the network rootfs builder before assembling the integrated image.')
+subprocess.run(['python3', str(P/'tools/build_frontpanel.py')], check=True)
 require_overlay_binaries(P/'src/openwrt-hh4000',seed)
 if seed!=R:shutil.copytree(seed,R,symlinks=True)
-shutil.copytree(P/'src/openwrt-hh4000/files',R,dirs_exist_ok=True,symlinks=True)
+overlay=P/'src/openwrt-hh4000/files'
+for path in overlay.rglob('*'):
+ target=R/path.relative_to(overlay)
+ if path.is_symlink() and (target.exists() or target.is_symlink()):
+  target.unlink()
+ elif path.is_file() and target.is_symlink():
+  target.unlink()
+shutil.copytree(overlay,R,dirs_exist_ok=True,symlinks=True)
+build_skiplog(R)
 if args.lab:shutil.copy2(O/'wireless.lab',R/'etc/config/wireless')
 (R/'etc/config/wireless').chmod(0o600)
 base=(P/'work/openwrt-net/rootfs/init').read_text()
@@ -25,7 +35,7 @@ assert 'HH_NETWORK_START_PID' in base
 (R/'init').write_text(base);(R/'init').chmod(0o755)
 for f in (P/'src/openwrt-hh4000/files').rglob('*'):
  if f.is_file() and (f.suffix=='.sh' or os.access(f,os.X_OK)):
-  if f.read_bytes().startswith(b'#!'):subprocess.run(['sh','-n',str(f)],check=True)
+  if f.read_bytes().startswith((b'#!/bin/sh', b'#!/rescue/busybox sh')):subprocess.run(['sh','-n',str(f)],check=True)
 paths=['.']+sorted('./'+str(f.relative_to(R)) for f in R.rglob('*'))
 cpio=subprocess.run(['cpio','--null','-o','--format=newc','--owner=0:0'],cwd=R,input=('\0'.join(paths)+'\0').encode(),capture_output=True,check=True).stdout
 (O/'openwrt-integrated.cpio.gz').write_bytes(gzip.compress(cpio,mtime=0))

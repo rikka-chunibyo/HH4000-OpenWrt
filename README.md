@@ -1,22 +1,43 @@
 # HH4000-OpenWrt
 
-OpenWrt integration and firmware research for the Bell Home Hub 4000
-(Sagemcom FAST5689, BCM6858). The tested configuration pairs OpenWrt
-userspace with the device's vendor kernel and hardware drivers.
+OpenWrt integration and firmware research for the **Bell Home Hub 4000
+(HH4000)**, also known as the **Sagemcom FAST5689** or **Sagemcom F@ST5689**.
+The port pairs OpenWrt userspace with the Broadcom BCM6858 platform's vendor
+kernel and hardware drivers.
 
-- [Platform support](src/openwrt-hh4000/README.md) covers Ethernet, Wi-Fi,
-  the front panel, the reset button, VPN support, and SQM.
-- [PON experiments](src/hh-pon/README.md) include the protocol core and
-  host tests.
-- The Arduino directory contains the UART bridge and relay controller.
-- The [research index](docs/README.md) links hardware documentation and
-  reports from the lab.
+The Bell Giga Hub (**FAST 5689E**, also written **F@ST 5689E**) is a related
+model. This port has been tested on the HH4000 FAST5689, and compatibility
+with the 5689E remains unverified.
+[Sagemcom Giga Hub model label](https://fccid.io/VW3FAST5689E/Label/FAST5689E-product-label-rev-5837896)
 
-To build a complete image, prepare the local inputs described in the
-[platform build notes](src/openwrt-hh4000/README.md#local-build-inputs).
-Use a RAM test image to validate the resulting firmware on your board
-before an installation. For an existing installation, see the
-[data-preserving maintenance procedure](docs/43-data-preserving-firmware-updates.md).
+To install OpenWrt on a compatible HH4000, start with the
+[installation and update guide](INSTALL.md). The
+[agent installation handoff](AGENTS.md) identifies the inputs, checks and
+research an assistant needs to help with the process. The
+[research index](docs/README.md) contains the dated hardware and test notes.
+
+![HH4000 running OpenWrt with the Home status page and blue ring lit](assets/front-panel-home.jpg)
+
+The display is running the [Python status dashboard](display-script-examples/status-dashboard.py).
+See the [display script examples](display-script-examples/) for how to load it.
+
+## Current capabilities
+
+| Area | Status |
+| --- | --- |
+| Ethernet | Four 1G LAN ports, configurable WAN defaulting to the 10G-capable eth4 port. A 2.5G link was verified; full 10G throughput remains untested. |
+| Switching | UCI-managed LAN bridge and explicit 802.1Q devices. The vendor kernel lacks VLAN-aware bridge filtering. |
+| Wi-Fi | Three vendor-driver radios, with LuCI configuration. Clean images leave Wi-Fi disabled until credentials are set. |
+| Routing | Legacy iptables/firewall3, with hardware NAT observed in routed traffic. New builds include SKIPLOG rules for TUN payload traffic. |
+| Display, buttons and LEDs | LuCI-configurable status pages or an optional Python program, plus a configurable rear RESET button. |
+| Storage | Read-only firmware with a separate writable data overlay and a staged, data-preserving updater. |
+| Optional networking | OpenVPN and HTB/FQ-CoDel SQM packages for the retained kernel. SQM pauses vendor acceleration while active. |
+| Optical and voice | PON and RJ11/FXS are research areas. [PON host tests](src/hh-pon/README.md) and the [voice audit](docs/44-rj11-voice-feasibility.md) document progress. |
+
+This is an experimental port. Use the platform's documented userspace and
+matching vendor 4.1.52 kernel and drivers. The checkout needs
+[local build inputs](src/openwrt-hh4000/README.md#local-build-inputs) and a
+compatible boot environment for the target.
 
 Source files and patches retain their existing license and attribution
 notices. The text for GPL-2.0-only files is in

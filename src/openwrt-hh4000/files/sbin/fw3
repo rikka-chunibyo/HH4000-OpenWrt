@@ -3,9 +3,17 @@
 /usr/libexec/hh-fw3 "$@"
 rc=$?
 for arg in "$@"; do
- case "$arg" in start|stop|restart|reload|flush)
-  /usr/libexec/hh-flow-flush || rc=1
-  break;;
+ case "$arg" in
+  start|restart|reload)
+   if [ "$rc" = 0 ] && ! /usr/libexec/hh-vpn-offload; then
+    logger -t hh-vpn-offload 'Failed to apply SKIPLOG rules to VPN tunnel traffic'
+    rc=1
+   fi
+   ;;
+  stop|flush) ;;
+  *) continue ;;
  esac
+ /usr/libexec/hh-flow-flush || rc=1
+ break
 done
 exit "$rc"

@@ -1,0 +1,22 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Keep tunnel payloads in Linux while other flows can use the Broadcom cache.
+set -eu
+if ! grep -q '^xt_SKIPLOG ' /proc/modules; then
+ insmod /lib/modules/4.1.52-5.02L.07/xt_SKIPLOG.ko
+fi
+
+ensure_rule() {
+ tables=$1
+ chain=$2
+ direction=$3
+ if ! "$tables" -w -t mangle -C "$chain" "$direction" 'tun+' -j SKIPLOG 2>/dev/null; then
+  "$tables" -w -t mangle -I "$chain" "$direction" 'tun+' -j SKIPLOG
+ fi
+}
+
+for tables in iptables ip6tables; do
+ ensure_rule "$tables" PREROUTING -i
+ ensure_rule "$tables" FORWARD -o
+ ensure_rule "$tables" OUTPUT -o
+done

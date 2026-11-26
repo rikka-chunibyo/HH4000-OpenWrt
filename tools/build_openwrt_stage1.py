@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Build on dev; only writes work/openwrt-ram, never contacts router.
 from pathlib import Path
-import hashlib,json,shutil,subprocess,gzip,os,sys
+import hashlib,json,shutil,subprocess,gzip,os
 ROOT=Path(__file__).resolve().parents[1]
 OUT=ROOT/'work/openwrt-ram';FS=OUT/'rootfs'
 ARCHIVE=OUT/'downloads/openwrt-24.10.4-armsr-armv8-rootfs.tar.gz'
@@ -58,11 +58,8 @@ cpio=subprocess.run(['cpio','--null','-o','--format=newc','--owner=0:0'],cwd=FS,
 (OUT/'openwrt-stage1.cpio.gz').write_bytes(gzip.compress(cpio.stdout,mtime=0))
 subprocess.run(['mkimage','-A','arm64','-O','linux','-T','ramdisk','-C','gzip','-n','HH4000 OpenWrt console stage1','-d',str(OUT/'openwrt-stage1.cpio.gz'),str(OUT/'openwrt-stage1.uImage')],check=True)
 assert (OUT/'openwrt-stage1.uImage').stat().st_size<0x1000000
-sys.path.insert(0,str(ROOT/'tools'))
-from uboot_ramboot import STOCK_ARGS
-(OUT/'bootargs.txt').write_text(STOCK_ARGS+'\n')
 manifest={'rootfs_url':'https://downloads.openwrt.org/releases/24.10.4/targets/armsr/armv8/'+ARCHIVE.name,'rootfs_sha256':EXPECTED,'stage':'console-only userspace; procd PID1 not yet tested','hardware_tested':False,'automatic_vendor_modules':['hard_watchdog.ko'],'watchdog_control':'U every 5 seconds to /proc/watchdog/info; statically verified, not yet RAM-boot tested','kernel':'existing stock kernel.uImage','dtb':'existing stock devicetree.dtb','files':{}}
-for name in ['openwrt-stage1.cpio.gz','openwrt-stage1.uImage','bootargs.txt']:
+for name in ['openwrt-stage1.cpio.gz','openwrt-stage1.uImage']:
  data=(OUT/name).read_bytes();manifest['files'][name]={'bytes':len(data),'sha256':hashlib.sha256(data).hexdigest()}
 (OUT/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
 print(json.dumps(manifest,indent=2))

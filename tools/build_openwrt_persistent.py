@@ -2,9 +2,13 @@
 """Build a SquashFS OpenWrt system, flash bootstrap, and isolated RAM test initrd."""
 from pathlib import Path
 from local_build_inputs import require_overlay_binaries
+from build_skiplog import build as build_skiplog
 import shutil,subprocess,gzip,json,hashlib,argparse
 P=Path(__file__).resolve().parents[1]
-parser=argparse.ArgumentParser();parser.add_argument('--output',default='work/openwrt-install');args=parser.parse_args()
+parser=argparse.ArgumentParser()
+parser.add_argument('--output', default='work/openwrt-install')
+parser.add_argument('--wireless-profile', type=Path, help='Private Wi-Fi preset to include explicitly')
+args=parser.parse_args()
 O=P/args.output;O.mkdir(parents=True,exist_ok=True)
 R=O/'rootfs';B=O/'bootstrap';S=P/'src/openwrt-hh4000/persistent'
 seed=R
@@ -13,6 +17,8 @@ if not R.exists():
  if seed==R or not seed.exists():seed=P/'work/openwrt-integrate/rootfs'
 if not seed.is_dir():
  raise SystemExit('Prepare a local OpenWrt rootfs under work/openwrt-integrate/rootfs first.')
+# Rebuild the board daemons before overlaying the image, even on an older seed.
+subprocess.run(['python3', str(P/'tools/build_frontpanel.py')], check=True)
 require_overlay_binaries(P/'src/openwrt-hh4000',seed)
 if seed!=R:shutil.copytree(seed,R,symlinks=True)
 # A native fw3 replacement must replace the old fw3->fw4 alias itself.
@@ -30,8 +36,9 @@ for source in overlay.rglob('*'):
   if head.startswith(b'#!/bin/sh') or head.startswith(b'#!/rescue/busybox sh'):
    subprocess.run(['sh','-n',str(source)],check=True)
 shutil.copytree(overlay,R,dirs_exist_ok=True,symlinks=True)
-wireless_override=P/'work/openwrt-integrate/wireless.lab'
-if wireless_override.is_file():shutil.copy2(wireless_override,R/'etc/config/wireless')
+build_skiplog(R)
+if args.wireless_profile:
+ shutil.copy2(args.wireless_profile,R/'etc/config/wireless')
 (R/'etc/config/wireless').chmod(0o600)
 wireless=(R/'etc/config/wireless').read_text();parts=wireless.split('config wifi-device')
 for i in range(1,len(parts)):

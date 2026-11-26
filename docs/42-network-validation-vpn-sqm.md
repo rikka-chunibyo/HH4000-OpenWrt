@@ -72,6 +72,23 @@ were removed. Static-key mode was used only to test this path; production
 TLS/client configuration and remote-provider interoperability were not tested.
 No DCO or VPN throughput claim is made. WireGuard has not been validated.
 
+### SKIPLOG in new images
+
+The image builder compiles `libxt_SKIPLOG.so` against the pinned iptables
+1.8.10 headers and includes the matching vendor kernel module from the
+local rootfs. After firewall3 starts or reloads, it installs IPv4 and IPv6
+mangle rules for ingress from `tun*` and forwarded or locally generated
+egress to `tun*`. Use a TUN device whose name starts with `tun` for this
+policy. These matches cover routed TUN payloads. Outer VPN transport can
+still use the normal WAN path.
+
+SKIPLOG tells Broadcom's datapath to skip flow learning for matched packets.
+Packets continue through normal firewall processing. The helper leaves the
+global flow-learning settings alone and firmware still flushes stale flow
+decisions after firewall policy changes. Verify the rule counters and the
+hardware acceleration state of an ordinary routed flow in a live test.
+[Broadcom SKIPLOG kernel target source](https://raw.githubusercontent.com/RMerl/asuswrt-merlin.ng/main/release/src-rt-5.02L.07p2axhnd/kernel/linux-4.1/net/netfilter/xt_SKIPLOG.c)
+
 ## Optional SQM
 
 `hh4000-sqm` adds **Network -> SQM**. It uses HTB, FQ-CoDel, IFB ingress

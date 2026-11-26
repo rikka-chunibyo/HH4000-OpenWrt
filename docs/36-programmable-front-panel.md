@@ -1,5 +1,10 @@
 # Configurable and programmable front panel
 
+When **Enable front panel** is off, OpenWrt still initializes the panel
+hardware at service start, clears and blanks the display, and turns off the
+panel LEDs. The bootloader greeting may appear before OpenWrt starts.
+
+
 ## Two explicit modes
 
 Open **System -> Front Panel** in LuCI and choose **Configuration** or **Python** under Mode and hardware.
@@ -53,6 +58,9 @@ Available built-ins include:
 Status describes interface/address readiness, not an internet reachability probe. The provider reads only the required network fields and never publishes Wi-Fi credentials.
 
 ## Python mode
+
+The [display script examples](../display-script-examples/) include the
+three-page dashboard pictured in the project README.
 
 Select Python, edit the program in the Python program tab, then **Save & Apply**. Examples can be loaded directly into the editor. The program runs with router administrator privileges. The editor accepts up to 32KiB. Larger applications can live in ordinary files and be launched from a short editor program or from the shell.
 

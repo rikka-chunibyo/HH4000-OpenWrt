@@ -14,9 +14,9 @@ that all advanced VLAN/offload configurations have been tested.
 
 Build daemon: python3 tools/build_netifd_hh4000.py (requires the prepared official
 OpenWrt 24.10.4 SDK under work/lan-fix/sdk; toolchain and patch hashes are recorded).
-Build RAM image: python3 tools/build_openwrt_integrated.py --lab.
-Boot: python -X utf8 tools/openwrt_net_live.py boot-integrated.
-The historical RAM tests ran without installing a root filesystem to flash.
+For the current RAM and persistent images, use the
+[installation guide](../../INSTALL.md). It links the compatible boot and
+data-preserving maintenance procedures.
 
 The pinned GPL-2.0 netifd shell library comes from
 https://github.com/openwrt/netifd/blob/7901e66c/scripts/netifd-wireless.sh .
@@ -39,16 +39,22 @@ contains the same components at the matching runtime paths. The input
 check verifies presence and ELF format. Use the ABI and versions described
 in the platform research when selecting the files.
 
-Run the build commands from the checkout root:
+The stage1, network and integrated scripts are intermediate images. If
+starting from an existing prepared rootfs, assemble the supported candidate
+with tools/build_openwrt_persistent.py as described in the installation
+guide. Both the integrated and persistent image builders compile the panel
+and reset daemons and the SKIPLOG userspace extension. For a private build
+with a Wi-Fi preset, pass --wireless-profile with the file path to the
+persistent builder. The integrated builder uses --lab with the local
+work/openwrt-integrate/wireless.lab file.
 
-- Stage the OpenWrt root filesystem with tools/build_openwrt_stage1.py
-  and tools/build_openwrt_net.py.
-- Build the integrated image with tools/build_openwrt_integrated.py.
-  Use the prepared root filesystem for tools/build_openwrt_persistent.py.
-- The default wireless configuration keeps the radios disabled. If you
-  need a local preset, put it in work/openwrt-integrate/wireless.lab.
+The ARM32 JSON file at work/display/live/build-settings.json supplies the
+compiler and two argument arrays. Use the ARM GNU EABI compiler with
+ARMv7-A soft-float flags and the matching vendor glibc and startup files.
+Put architecture, include and compile flags in base_arguments. Put linker
+flags, startup files and libraries appropriate to your toolchain in
+tail_arguments. The daemons run through the vendor glibc loader. The
+separate SKIPLOG extension needs the ARM64 musl SDK and the netfilter
+header archive listed in the installation guide.
 
-See the [maintenance documentation](../../docs/43-data-preserving-firmware-updates.md)
-for image preparation and verification. Full image assembly requires local
-inputs, including the ARM32 toolchain settings and vendor runtime. The
-PON host tests can run independently with make in src/hh-pon.
+The PON host tests can run independently with make in src/hh-pon.

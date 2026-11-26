@@ -13,6 +13,7 @@ etc/rc.d/K05hh-frontpanel
 etc/rc.d/K06hh-reset
 etc/rc.d/S94hh-reset
 etc/rc.d/S95hh-frontpanel
+lib/modules/4.1.52-5.02L.07/xt_SKIPLOG.ko
 lib/modules/4.1.52-5.02L.07/xt_comment.ko
 lib/netifd/netifd-wireless.sh
 lib/netifd/wireless/bcmdhd.sh
@@ -24,6 +25,7 @@ sbin/procd
 sbin/wifi
 usr/bin/hh-panel-python
 usr/lib/hh-frontpanel/hhpanel.py
+usr/lib/iptables/libxt_SKIPLOG.so
 usr/lib/libip4tc.so.2
 usr/lib/libip4tc.so.2.0.0
 usr/lib/libip6tc.so.2
@@ -46,6 +48,7 @@ usr/libexec/hh-fw3
 usr/libexec/hh-reset
 usr/libexec/hh-reset-config
 usr/libexec/hh-scratchpad-wan
+usr/libexec/hh-vpn-offload
 usr/libexec/hh-wan-select
 usr/sbin/dropbear
 usr/sbin/fcctl
