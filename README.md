@@ -36,6 +36,18 @@ matching vendor 4.1.52 kernel and drivers. The checkout needs
 [local build inputs](src/openwrt-hh4000/README.md#local-build-inputs) and a
 compatible boot environment for the target.
 
+## ⚠️ Disclaimer
+
+This project is experimental and is provided as-is, without warranty of any kind.
+
+Flashing custom firmware and modifying bootloaders carries a real risk of permanently bricking your equipment. Do your own research, understand what you are flashing, and make proper backups before proceeding.
+
+I am not responsible for any damage, data loss, loss of functionality, or other consequences resulting from the use of this project.
+
+**Proceed at your own risk.**
+
+
+
 Source files and patches retain their existing license and attribution
 notices. The text for GPL-2.0-only files is in
 [LICENSES](LICENSES/GPL-2.0-only.txt).
