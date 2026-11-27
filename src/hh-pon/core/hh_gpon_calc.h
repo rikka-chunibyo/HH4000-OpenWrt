@@ -8,7 +8,7 @@
 
 #include "hh_ploam.h"
 
-#define HH_GPON_US_BITS_PER_FRAME	155520u	/* 1.24416 Gb/s * 125 us */
+#define HH_GPON_US_BITS_PER_FRAME 155520u /* 1.24416 Gb/s * 125 us */
 
 /* ONU minimum response time in bits: stock link param 35 us -> 43545 bits. */
 static inline uint32_t hh_min_resp_bits(uint32_t min_resp_us)
@@ -31,7 +31,8 @@ static inline uint32_t hh_tdly_encode(uint32_t total_bits)
  * 11-12, units of 256 bits, only if options bit5 "pre-equalisation" is set)
  * plus, in O3, the random delay (units of 256 bits). */
 static inline uint32_t hh_preassigned_bits(uint32_t min_resp_bits, bool pre_eq,
-					   uint16_t preassigned, bool sn_state, uint8_t random_delay)
+                                           uint16_t preassigned, bool sn_state,
+                                           uint8_t random_delay)
 {
 	return min_resp_bits + (pre_eq ? (uint32_t)preassigned * 256u : 0u) +
 	       (sn_state ? (uint32_t)random_delay << 8 : 0u);
@@ -43,10 +44,10 @@ static inline uint8_t hh_random_delay(uint32_t rnd)
 	return (uint8_t)(((rnd & 0xffffu) % 0xe947u) >> 8);
 }
 
-#define HH_OVH_OPT_PRE_EQ	0x20	/* options octet bit5 */
-#define HH_OVH_OPT_SN_MASK	0x10
-#define HH_OVH_OPT_EXTRA_SN(o)	(((o) >> 2) & 3)
-#define HH_OVH_OPT_POWER(o)	((o) & 3)
+#define HH_OVH_OPT_PRE_EQ 0x20 /* options octet bit5 */
+#define HH_OVH_OPT_SN_MASK 0x10
+#define HH_OVH_OPT_EXTRA_SN(o) (((o) >> 2) & 3)
+#define HH_OVH_OPT_POWER(o) ((o) & 3)
 
 /* Stock validity check on Upstream_Overhead: T1+T2 <= 128 and (T1+T2+GT) % 8 == 0. */
 static inline bool hh_overhead_valid(uint8_t guard, uint8_t t1, uint8_t t2)
@@ -56,7 +57,7 @@ static inline bool hh_overhead_valid(uint8_t guard, uint8_t t1, uint8_t t2)
 
 /* Ranging PLOAM buffer content (RPLM[0..12]): SN_ONU incl. CRC-8 (docs/13 5.5). */
 static inline void hh_build_rplm(uint8_t out[13], uint8_t onu_id, const uint8_t sn[8],
-				 uint8_t random_delay, uint8_t power_level)
+                                 uint8_t random_delay, uint8_t power_level)
 {
 	struct hh_ploam_raw m;
 	unsigned int i;

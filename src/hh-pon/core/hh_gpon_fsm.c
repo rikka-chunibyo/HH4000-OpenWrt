@@ -16,11 +16,15 @@
 #include <string.h>
 #endif
 
-#define CALL(f, op, ...) do { if ((f)->ops->op) (f)->ops->op((f)->ctx, ##__VA_ARGS__); } while (0)
+#define CALL(f, op, ...)                                                                           \
+	do {                                                                                       \
+		if ((f)->ops->op)                                                                  \
+			(f)->ops->op((f)->ctx, ##__VA_ARGS__);                                     \
+	} while (0)
 
 static const char *const names[] = {
-	"?", "O1-Initial", "O2-Standby", "O3-SerialNumber", "O4-Ranging",
-	"O5-Operation", "O6-Popup", "O7-EmergencyStop",
+        "?",          "O1-Initial",   "O2-Standby", "O3-SerialNumber",
+        "O4-Ranging", "O5-Operation", "O6-Popup",   "O7-EmergencyStop",
 };
 
 const char *hh_gpon_state_name(enum hh_gpon_state st)
@@ -88,19 +92,19 @@ static void enter(struct hh_gpon_fsm *f, enum hh_gpon_state st)
 }
 
 void hh_gpon_fsm_init(struct hh_gpon_fsm *f, const struct hh_gpon_fsm_cfg *cfg,
-		      const struct hh_gpon_ops *ops, void *ctx)
+                      const struct hh_gpon_ops *ops, void *ctx)
 {
 	memset(f, 0, sizeof(*f));
 	f->cfg = *cfg;
 	if (!f->cfg.to1_ms)
-		f->cfg.to1_ms = 20000;	/* stock link parameter; G.984.3 suggests 10 s */
+		f->cfg.to1_ms = 20000; /* stock link parameter; G.984.3 suggests 10 s */
 	if (!f->cfg.to2_ms)
 		f->cfg.to2_ms = 100;
 	f->ops = ops;
 	f->ctx = ctx;
 	f->onu_id = HH_ONU_ID_BROADCAST;
 	f->state = HH_O1_INITIAL;
-	f->admin_down = true;	/* nothing happens until HH_SIG_ACTIVATE */
+	f->admin_down = true; /* nothing happens until HH_SIG_ACTIVATE */
 	CALL(f, laser_enable, false);
 	CALL(f, set_state, HH_O1_INITIAL);
 }
@@ -134,7 +138,7 @@ void hh_gpon_fsm_signal(struct hh_gpon_fsm *f, enum hh_gpon_signal s)
 		case HH_O5_OPERATION:
 			enter(f, HH_O6_POPUP);
 			break;
-		default:	/* O1, O6 (TO2 running), O7 (sticky) */
+		default: /* O1, O6 (TO2 running), O7 (sticky) */
 			break;
 		}
 		break;
@@ -183,7 +187,7 @@ static void send_key(struct hh_gpon_fsm *f)
 
 /* O5-only management messages. Returns true if handled. */
 static bool handle_o5(struct hh_gpon_fsm *f, const struct hh_ploam_raw *m,
-		      const struct hh_ploam_ds *d)
+                      const struct hh_ploam_ds *d)
 {
 	struct hh_ploam_raw r;
 

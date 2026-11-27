@@ -47,59 +47,65 @@ module_param(password, charp, 0400);
 MODULE_PARM_DESC(password, "PLOAM password, up to 10 chars (opaque config input)");
 
 /* ---- register map (physical addresses, regdb: work/regdb/{bcm_pondrv,gponstack}.h) ---- */
-#define HH_WIN_BASE		0x80144000u	/* WAN top .. GPON RX end */
-#define HH_WIN_SIZE		0x00014000u
+#define HH_WIN_BASE 0x80144000u /* WAN top .. GPON RX end */
+#define HH_WIN_SIZE 0x00014000u
 
-#define WT_MISC_3		0x8014404cu	/* LASER_OE[7] LASER_MODE IFSEL */
-#define WT_PMI_LP_0		0x8014405cu
-#define WT_PMI_LP_1		0x80144060u
-#define WT_PMI_LP_2		0x80144064u
-#define WT_PMI_LP_3		0x80144068u	/* ERR[17] ACK[16] RDDATA[15:0] */
-#define WT_FORCE_LBE		0x8014409cu	/* [1:0]: 0 MAC, 1 force off (lbe_pol 1), 3 force on */
+#define WT_MISC_3 0x8014404cu /* LASER_OE[7] LASER_MODE IFSEL */
+#define WT_PMI_LP_0 0x8014405cu
+#define WT_PMI_LP_1 0x80144060u
+#define WT_PMI_LP_2 0x80144064u
+#define WT_PMI_LP_3 0x80144068u  /* ERR[17] ACK[16] RDDATA[15:0] */
+#define WT_FORCE_LBE 0x8014409cu /* [1:0]: 0 MAC, 1 force off (lbe_pol 1), 3 force on */
 
-#define TX_TDLY			0x80148000u
-#define TX_TEN			0x80148004u
-#define   TEN_RNGEN		BIT(8)
-#define TX_NPREP		0x80148010u
-#define TX_TPVLD		0x80148014u
-#define TX_TPCLR		0x80148020u
-#define TX_TXISR0		0x80148024u
-#define   TXISR0_NPLMIRQ	BIT(2)
-#define   TXISR0_RPLMIRQ	BIT(5)
-#define TX_TXIER0		0x80148030u
-#define TX_ONUID		0x80148050u
-#define TX_PROD(i)		(0x80148060u + 4 * (i))	/* 16 entries */
-#define TX_PRODS		0x801480a0u	/* PRCL[4:0] PRL[11:5] */
-#define TX_PRRB			0x801480b0u
-#define TX_DELC			0x801480c0u
-#define TX_RPLM(i)		(0x80148200u + 4 * (i))	/* 13 bytes */
-#define TX_IPLM(i)		(0x80148240u + 4 * (i))
+#define TX_TDLY 0x80148000u
+#define TX_TEN 0x80148004u
+#define TEN_RNGEN BIT(8)
+#define TX_NPREP 0x80148010u
+#define TX_TPVLD 0x80148014u
+#define TX_TPCLR 0x80148020u
+#define TX_TXISR0 0x80148024u
+#define TXISR0_NPLMIRQ BIT(2)
+#define TXISR0_RPLMIRQ BIT(5)
+#define TX_TXIER0 0x80148030u
+#define TX_ONUID 0x80148050u
+#define TX_PROD(i) (0x80148060u + 4 * (i)) /* 16 entries */
+#define TX_PRODS 0x801480a0u               /* PRCL[4:0] PRL[11:5] */
+#define TX_PRRB 0x801480b0u
+#define TX_DELC 0x801480c0u
+#define TX_RPLM(i) (0x80148200u + 4 * (i)) /* 13 bytes */
+#define TX_IPLM(i) (0x80148240u + 4 * (i))
 
-#define RX_RCVR_STATUS		0x80150000u	/* LOF[0] */
-#define RX_RCVR_CONFIG		0x80150004u
-#define RX_GRXISR		0x80150010u
-#define   GRXISR_LOFCHNG	BIT(4)
-#define RX_GRXIER		0x80150014u
-#define RX_PLOAM_ONU_ID(i)	(0x80150020u + 4 * (i))	/* [0] unicast, [1] broadcast; DISABLE[8] */
-#define RX_RANG_ALC_ID		0x80150030u
-#define RX_ALC_ID_CFG(i)	(0x80150034u + 4 * (i))	/* i = 0..39 */
-#define RX_RANG_ALC_ID_EN	0x801500d4u
-#define RX_ALC_ID_EN(i)		(0x801500d8u + 4 * (i))	/* 8 slots per word */
-#define RX_PORT_FULLCFG(f)	(0x80150200u + 4 * (f))	/* flows 0..31 */
-#define   FULLCFG_ENCRYPT	BIT(12)
-#define   FULLCFG_TYPE		BIT(13)		/* [U] semantics */
-#define RX_PORT_DISABLE(w)	(0x80150600u + 4 * (w))
-#define RX_ENC_KEY(i)		(0x80150704u + 4 * (i))
-#define RX_ENC_SWITCH_TIME	0x80150714u	/* SW_TIME[29:0] ARM[30] */
+#define RX_RCVR_STATUS 0x80150000u /* LOF[0] */
+#define RX_RCVR_CONFIG 0x80150004u
+#define RX_GRXISR 0x80150010u
+#define GRXISR_LOFCHNG BIT(4)
+#define RX_GRXIER 0x80150014u
+#define RX_PLOAM_ONU_ID(i) (0x80150020u + 4 * (i)) /* [0] unicast, [1] broadcast; DISABLE[8] */
+#define RX_RANG_ALC_ID 0x80150030u
+#define RX_ALC_ID_CFG(i) (0x80150034u + 4 * (i)) /* i = 0..39 */
+#define RX_RANG_ALC_ID_EN 0x801500d4u
+#define RX_ALC_ID_EN(i) (0x801500d8u + 4 * (i))    /* 8 slots per word */
+#define RX_PORT_FULLCFG(f) (0x80150200u + 4 * (f)) /* flows 0..31 */
+#define FULLCFG_ENCRYPT BIT(12)
+#define FULLCFG_TYPE BIT(13) /* [U] semantics */
+#define RX_PORT_DISABLE(w) (0x80150600u + 4 * (w))
+#define RX_ENC_KEY(i) (0x80150704u + 4 * (i))
+#define RX_ENC_SWITCH_TIME 0x80150714u /* SW_TIME[29:0] ARM[30] */
 
-#define HH_MIN_RESP_US		35		/* stock link param 0x23 [V] */
-#define HH_TXIER0_STOCK		0x2c		/* NPLM, UPLM, RPLM [V] */
-#define HH_GRXIER_STOCK		0x1b8		/* ACCFIFO LOFCHNG LCDGCHNG TOD FWI [V] */
+#define HH_MIN_RESP_US 35     /* stock link param 0x23 [V] */
+#define HH_TXIER0_STOCK 0x2c  /* NPLM, UPLM, RPLM [V] */
+#define HH_GRXIER_STOCK 0x1b8 /* ACCFIFO LOFCHNG LCDGCHNG TOD FWI [V] */
 
 /* NPLM0..3 offsets in the PLOAM memory block: NPLM3 +0xc0 .. NPLM0 +0x180 [V regdb] */
-static inline u32 nplm_base(unsigned int n) { return 0x80148200u + 0x180u - 0x40u * n; }
+static inline u32 nplm_base(unsigned int n)
+{
+	return 0x80148200u + 0x180u - 0x40u * n;
+}
 
-enum hh_ev_kind { EV_SIGNAL, EV_PLOAM };
+enum hh_ev_kind {
+	EV_SIGNAL,
+	EV_PLOAM
+};
 struct hh_ev {
 	u8 kind;
 	u8 sig;
@@ -110,8 +116,8 @@ struct hh_pon {
 	struct device *dev;
 	void __iomem *base;
 	int irq_tx, irq_rx;
-	struct gpio_desc *tx_en;	/* GPIO57, active-low in DT [V] */
-	struct gpio_desc *wan_sel;	/* GPIO60, 1 = GPON optics path [V userspace] */
+	struct gpio_desc *tx_en;   /* GPIO57, active-low in DT [V] */
+	struct gpio_desc *wan_sel; /* GPIO60, 1 = GPON optics path [V userspace] */
 
 	struct workqueue_struct *wq;
 	struct work_struct ev_work;
@@ -119,13 +125,13 @@ struct hh_pon {
 	DECLARE_KFIFO(ev, struct hh_ev, 64);
 	struct delayed_work to1, to2;
 
-	struct mutex lock;		/* serialises the FSM and register shadows */
+	struct mutex lock; /* serialises the FSM and register shadows */
 	struct hh_gpon_fsm fsm;
 	struct hh_gpon_ops ops;
 	u32 min_resp_bits;
-	struct hh_ploam_ds ovh;		/* last accepted Upstream_Overhead */
+	struct hh_ploam_ds ovh; /* last accepted Upstream_Overhead */
 	u8 random_delay;
-	u16 alloc_shadow[40];		/* 0 = free; slot 0 = default Alloc (ONU-ID) */
+	u16 alloc_shadow[40]; /* 0 = free; slot 0 = default Alloc (ONU-ID) */
 	struct dentry *dbg;
 #ifdef HH_PON_WITH_XRDP
 	struct xrdp *xrdp;
@@ -136,8 +142,14 @@ static inline void __iomem *R(struct hh_pon *p, u32 phys)
 {
 	return p->base + (phys - HH_WIN_BASE);
 }
-static inline u32 rd(struct hh_pon *p, u32 a) { return readl(R(p, a)); }
-static inline void wr(struct hh_pon *p, u32 a, u32 v) { writel(v, R(p, a)); }
+static inline u32 rd(struct hh_pon *p, u32 a)
+{
+	return readl(R(p, a));
+}
+static inline void wr(struct hh_pon *p, u32 a, u32 v)
+{
+	writel(v, R(p, a));
+}
 static inline void rmw(struct hh_pon *p, u32 a, u32 clr, u32 set)
 {
 	wr(p, a, (rd(p, a) & ~clr) | set);
@@ -209,7 +221,7 @@ static int serdes_init_gpon(struct hh_pon *p)
 	if (ret)
 		return ret;
 	if (!pmi_read(p, 0x800, 0xd128, &v) && !(v & BIT(8)))
-		dev_warn(p->dev, "WAN PLL0 not locked (d128=%04x)\n", v);	/* stock only logs */
+		dev_warn(p->dev, "WAN PLL0 not locked (d128=%04x)\n", v); /* stock only logs */
 	return 0;
 }
 
@@ -226,13 +238,14 @@ static void load_rplm(struct hh_pon *p, u8 onu_id)
 {
 	u8 b[13];
 
-	hh_build_rplm(b, onu_id, p->fsm.cfg.sn, p->random_delay, HH_OVH_OPT_POWER(p->ovh.u.overhead.options));
+	hh_build_rplm(b, onu_id, p->fsm.cfg.sn, p->random_delay,
+	              HH_OVH_OPT_POWER(p->ovh.u.overhead.options));
 	write_plm(p, TX_RPLM(0), b);
 }
 
 static void load_iplm(struct hh_pon *p, u8 onu_id)
 {
-	u8 b[13] = { onu_id, HH_US_NO_MESSAGE };
+	u8 b[13] = {onu_id, HH_US_NO_MESSAGE};
 
 	b[12] = hh_ploam_crc8(b, 12);
 	write_plm(p, TX_IPLM(0), b);
@@ -242,9 +255,9 @@ static void set_tdly_preassigned(struct hh_pon *p, bool sn_state)
 {
 	const typeof(p->ovh.u.overhead) *o = &p->ovh.u.overhead;
 
-	wr(p, TX_TDLY, hh_tdly_encode(hh_preassigned_bits(p->min_resp_bits,
-			o->options & HH_OVH_OPT_PRE_EQ, o->preassigned_delay,
-			sn_state, p->random_delay)));
+	wr(p, TX_TDLY,
+	   hh_tdly_encode(hh_preassigned_bits(p->min_resp_bits, o->options & HH_OVH_OPT_PRE_EQ,
+	                                      o->preassigned_delay, sn_state, p->random_delay)));
 }
 
 /* ---- hh_gpon_ops implementation ---- */
@@ -260,13 +273,13 @@ static void op_set_onu_id(void *c, u8 id, bool valid)
 	struct hh_pon *p = c;
 
 	wr(p, TX_ONUID, id);
-	wr(p, RX_PLOAM_ONU_ID(0), valid ? id : 0x100);	/* unicast filter */
+	wr(p, RX_PLOAM_ONU_ID(0), valid ? id : 0x100); /* unicast filter */
 	load_rplm(p, id);
 	load_iplm(p, id);
 	if (valid) {
-		p->random_delay = 0;			/* ranging response: no random delay */
+		p->random_delay = 0; /* ranging response: no random delay */
 		set_tdly_preassigned(p, false);
-		wr(p, RX_RANG_ALC_ID, id);		/* ranging grants use Alloc-ID = ONU-ID */
+		wr(p, RX_RANG_ALC_ID, id); /* ranging grants use Alloc-ID = ONU-ID */
 		wr(p, RX_RANG_ALC_ID_EN, 1);
 	} else {
 		rmw(p, TX_TEN, 0, TEN_RNGEN);
@@ -280,14 +293,15 @@ static bool op_set_overhead(void *c, const struct hh_ploam_ds *d)
 	const typeof(d->u.overhead) *o = &d->u.overhead;
 
 	if (!hh_overhead_valid(o->guard_bits, o->t1_preamble_bits, o->t2_preamble_bits)) {
-		dev_warn(p->dev, "invalid Upstream_Overhead GT %u T1 %u T2 %u\n",
-			 o->guard_bits, o->t1_preamble_bits, o->t2_preamble_bits);
-		return false;	/* [V] stock rejects it and stays in O2 */
+		dev_warn(p->dev, "invalid Upstream_Overhead GT %u T1 %u T2 %u\n", o->guard_bits,
+		         o->t1_preamble_bits, o->t2_preamble_bits);
+		return false; /* [V] stock rejects it and stays in O2 */
 	}
 	p->ovh = *d;
 	/* DELC: delimiter bytes little-endian in the upper 3 bytes (ab 59 83 -> 0x8359ab00) [V] */
-	wr(p, TX_DELC, ((u32)o->delimiter[2] << 24) | ((u32)o->delimiter[1] << 16) |
-		       ((u32)o->delimiter[0] << 8));
+	wr(p, TX_DELC,
+	   ((u32)o->delimiter[2] << 24) | ((u32)o->delimiter[1] << 16) |
+	           ((u32)o->delimiter[0] << 8));
 	wr(p, TX_PRRB, o->t3_pattern);
 	/* TODO [U]: PROD[] byte image and PRODS.PRCL/PRL exactly as
 	 * p_sm_standby_o2_state_upstream_overhead_message_event builds them
@@ -323,10 +337,10 @@ static void op_set_eqd(void *c, u32 eqd_bits)
 	struct hh_pon *p = c;
 
 	wr(p, TX_TDLY, hh_tdly_encode(p->min_resp_bits + eqd_bits));
-	if (p->fsm.state == HH_O4_RANGING) {	/* first ranging: leave ranging mode [V] */
+	if (p->fsm.state == HH_O4_RANGING) { /* first ranging: leave ranging mode [V] */
 		rmw(p, TX_TEN, TEN_RNGEN, 0);
 		wr(p, RX_RANG_ALC_ID_EN, 0);
-		wr(p, RX_ALC_ID_CFG(0), p->fsm.onu_id);	/* default Alloc = OMCC T-CONT */
+		wr(p, RX_ALC_ID_CFG(0), p->fsm.onu_id); /* default Alloc = OMCC T-CONT */
 		rmw(p, RX_ALC_ID_EN(0), 0, 1);
 		p->alloc_shadow[0] = p->fsm.onu_id;
 	}
@@ -340,7 +354,7 @@ static void op_laser_enable(void *c, bool on)
 		dev_info_once(p->dev, "tx_enable=0: laser stays off (receive-only)\n");
 		on = false;
 	}
-	wr(p, WT_FORCE_LBE, on ? 0 : 1);	/* lbe_pol 1 on M02099 [V] */
+	wr(p, WT_FORCE_LBE, on ? 0 : 1); /* lbe_pol 1 on M02099 [V] */
 	if (p->tx_en)
 		gpiod_set_value_cansleep(p->tx_en, on);
 }
@@ -357,7 +371,7 @@ static void op_send_ploam(void *c, const struct hh_ploam_raw *m, unsigned int re
 		;
 	if (n == 4) {
 		dev_warn_ratelimited(p->dev, "US PLOAM queue full, dropping msg %u\n", m->msg_id);
-		return;	/* TODO: software queue refilled on NPLMIRQ */
+		return; /* TODO: software queue refilled on NPLMIRQ */
 	}
 	b[0] = m->onu_id;
 	b[1] = m->msg_id;
@@ -389,8 +403,11 @@ static void op_alloc_id(void *c, u16 alloc, bool assign)
 
 	for (i = 1; i < 40; i++) {
 		if (assign && p->alloc_shadow[i] == alloc)
-			return;				/* duplicate assign: no write [V] */
-		if (!assign && p->alloc_shadow[i] == alloc) { slot = i; break; }
+			return; /* duplicate assign: no write [V] */
+		if (!assign && p->alloc_shadow[i] == alloc) {
+			slot = i;
+			break;
+		}
 		if (assign && !slot && !p->alloc_shadow[i])
 			slot = i;
 	}
@@ -413,17 +430,20 @@ static void op_omci_port(void *c, u16 port, bool en)
 	struct hh_pon *p = c;
 
 #ifdef HH_PON_WITH_XRDP
-	struct xrdp_gem_cfg g = { .port_id = port, .omci = true, .ds = true, .us = true,
-				  .channel = XRDP_PON_MGMT_CHANNEL };
+	struct xrdp_gem_cfg g = {.port_id = port,
+	                         .omci = true,
+	                         .ds = true,
+	                         .us = true,
+	                         .channel = XRDP_PON_MGMT_CHANNEL};
 
-	if (en && xrdp_gem_flow_set(p->xrdp, XRDP_PON_OMCI_FLOW, &g))	/* Runner first [V] */
+	if (en && xrdp_gem_flow_set(p->xrdp, XRDP_PON_OMCI_FLOW, &g)) /* Runner first [V] */
 		return;
 #endif
 	if (en) {
-		wr(p, RX_PORT_FULLCFG(0), port & 0xfff);	/* TYPE/PRIORITY [U] */
+		wr(p, RX_PORT_FULLCFG(0), port & 0xfff); /* TYPE/PRIORITY [U] */
 		rmw(p, RX_PORT_DISABLE(0), BIT(0), 0);
 	} else {
-		rmw(p, RX_PORT_DISABLE(0), 0, BIT(0));		/* MAC first on removal [V] */
+		rmw(p, RX_PORT_DISABLE(0), 0, BIT(0)); /* MAC first on removal [V] */
 #ifdef HH_PON_WITH_XRDP
 		xrdp_gem_flow_clear(p->xrdp, XRDP_PON_OMCI_FLOW);
 #endif
@@ -478,7 +498,7 @@ static void post(struct hh_pon *p, const struct hh_ev *e)
 
 static void post_sig(struct hh_pon *p, enum hh_gpon_signal s)
 {
-	struct hh_ev e = { .kind = EV_SIGNAL, .sig = s };
+	struct hh_ev e = {.kind = EV_SIGNAL, .sig = s};
 
 	post(p, &e);
 }
@@ -520,7 +540,7 @@ static irqreturn_t irq_rx(int irq, void *d)
 	struct hh_pon *p = d;
 	u32 isr = rd(p, RX_GRXISR);
 
-	wr(p, RX_GRXISR, isr);			/* W1C [V] */
+	wr(p, RX_GRXISR, isr); /* W1C [V] */
 	if (isr & GRXISR_LOFCHNG)
 		post_sig(p, (rd(p, RX_RCVR_STATUS) & 1) ? HH_SIG_LOS_LOF : HH_SIG_DS_SYNC);
 	return isr ? IRQ_HANDLED : IRQ_NONE;
@@ -541,7 +561,7 @@ static irqreturn_t irq_tx(int irq, void *d)
 #ifdef HH_PON_WITH_XRDP
 static void rx_ploam(void *priv, const u8 *b, unsigned int len)
 {
-	struct hh_ev e = { .kind = EV_PLOAM };
+	struct hh_ev e = {.kind = EV_PLOAM};
 
 	if (len < HH_PLOAM_LEN)
 		return;
@@ -551,7 +571,7 @@ static void rx_ploam(void *priv, const u8 *b, unsigned int len)
 	post(priv, &e);
 }
 
-static const struct xrdp_pon_ops hh_xrdp_ops = { .rx_ploam = rx_ploam };
+static const struct xrdp_pon_ops hh_xrdp_ops = {.rx_ploam = rx_ploam};
 #endif
 
 /* ---- debugfs ---- */
@@ -561,10 +581,10 @@ static int state_show(struct seq_file *s, void *unused)
 
 	mutex_lock(&p->lock);
 	seq_printf(s, "state %s\nonu_id %d\ntx_enable %d\nploam rx %u ignored %u bad %u\n",
-		   hh_gpon_state_name(p->fsm.state), p->fsm.have_onu_id ? p->fsm.onu_id : -1,
-		   tx_enable, p->fsm.ploam_rx, p->fsm.ploam_ignored, p->fsm.ploam_bad);
-	seq_printf(s, "rcvr_status %08x tdly %08x ten %08x\n",
-		   rd(p, RX_RCVR_STATUS), rd(p, TX_TDLY), rd(p, TX_TEN));
+	           hh_gpon_state_name(p->fsm.state), p->fsm.have_onu_id ? p->fsm.onu_id : -1,
+	           tx_enable, p->fsm.ploam_rx, p->fsm.ploam_ignored, p->fsm.ploam_bad);
+	seq_printf(s, "rcvr_status %08x tdly %08x ten %08x\n", rd(p, RX_RCVR_STATUS),
+	           rd(p, TX_TDLY), rd(p, TX_TEN));
 	mutex_unlock(&p->lock);
 	return 0;
 }
@@ -586,7 +606,7 @@ static int parse_identity(struct hh_pon *p, struct hh_gpon_fsm_cfg *cfg)
 static int hh_pon_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
-	struct hh_gpon_fsm_cfg cfg = { 0 };
+	struct hh_gpon_fsm_cfg cfg = {0};
 	struct hh_pon *p;
 	int ret;
 
@@ -624,24 +644,32 @@ static int hh_pon_probe(struct platform_device *pdev)
 		return -ENOMEM;
 	p->min_resp_bits = hh_min_resp_bits(HH_MIN_RESP_US);
 
-	wr(p, WT_FORCE_LBE, 1);				/* laser forced off */
-	ret = serdes_init_gpon(p);			/* docs/13 2.3 */
+	wr(p, WT_FORCE_LBE, 1);    /* laser forced off */
+	ret = serdes_init_gpon(p); /* docs/13 2.3 */
 	if (ret)
 		goto err_wq;
-	ret = run_replay(p, hh_mac_init, HH_MAC_INIT_LEN);	/* link reset + activate, docs/13 4.3 */
+	ret = run_replay(p, hh_mac_init, HH_MAC_INIT_LEN); /* link reset + activate, docs/13 4.3 */
 	if (ret)
 		goto err_wq;
-	wr(p, WT_FORCE_LBE, 1);				/* replay may not leave it forced */
+	wr(p, WT_FORCE_LBE, 1); /* replay may not leave it forced */
 
 	p->ops = (struct hh_gpon_ops){
-		.set_state = op_set_state, .set_onu_id = op_set_onu_id,
-		.set_overhead = op_set_overhead, .set_ext_burst = op_set_ext_burst,
-		.sn_response_sent = op_sn_response_sent, .set_eqd = op_set_eqd,
-		.laser_enable = op_laser_enable, .send_ploam = op_send_ploam,
-		.timer_start = op_timer_start, .timer_stop = op_timer_stop,
-		.alloc_id = op_alloc_id, .omci_port = op_omci_port,
-		.port_encrypt = op_port_encrypt, .key_generate = op_key_generate,
-		.key_switch = op_key_switch, .link = op_link,
+	        .set_state = op_set_state,
+	        .set_onu_id = op_set_onu_id,
+	        .set_overhead = op_set_overhead,
+	        .set_ext_burst = op_set_ext_burst,
+	        .sn_response_sent = op_sn_response_sent,
+	        .set_eqd = op_set_eqd,
+	        .laser_enable = op_laser_enable,
+	        .send_ploam = op_send_ploam,
+	        .timer_start = op_timer_start,
+	        .timer_stop = op_timer_stop,
+	        .alloc_id = op_alloc_id,
+	        .omci_port = op_omci_port,
+	        .port_encrypt = op_port_encrypt,
+	        .key_generate = op_key_generate,
+	        .key_switch = op_key_switch,
+	        .link = op_link,
 	};
 	hh_gpon_fsm_init(&p->fsm, &cfg, &p->ops, p);
 	memzero_explicit(&cfg, sizeof(cfg));
@@ -685,7 +713,7 @@ static void hh_pon_remove(struct platform_device *pdev)
 
 	debugfs_remove_recursive(p->dbg);
 	mutex_lock(&p->lock);
-	hh_gpon_fsm_signal(&p->fsm, HH_SIG_DEACTIVATE);	/* laser off */
+	hh_gpon_fsm_signal(&p->fsm, HH_SIG_DEACTIVATE); /* laser off */
 	mutex_unlock(&p->lock);
 	wr(p, RX_GRXIER, 0);
 	wr(p, TX_TXIER0, 0);
@@ -697,16 +725,13 @@ static void hh_pon_remove(struct platform_device *pdev)
 	destroy_workqueue(p->wq);
 }
 
-static const struct of_device_id hh_pon_of_match[] = {
-	{ .compatible = "brcm,bcm6858-gpon" },
-	{ }
-};
+static const struct of_device_id hh_pon_of_match[] = {{.compatible = "brcm,bcm6858-gpon"}, {}};
 MODULE_DEVICE_TABLE(of, hh_pon_of_match);
 
 static struct platform_driver hh_pon_driver = {
-	.probe = hh_pon_probe,
-	.remove = hh_pon_remove,
-	.driver = { .name = "hh-pon", .of_match_table = hh_pon_of_match },
+        .probe = hh_pon_probe,
+        .remove = hh_pon_remove,
+        .driver = {.name = "hh-pon", .of_match_table = hh_pon_of_match},
 };
 module_platform_driver(hh_pon_driver);
 

@@ -28,18 +28,18 @@ enum hh_gpon_state {
 };
 
 enum hh_gpon_timer {
-	HH_TIMER_TO1,	/* SN + ranging timer, O3..O4 (stock default 20 s) */
-	HH_TIMER_TO2,	/* POPUP timer, O6 (default 100 ms) */
+	HH_TIMER_TO1, /* SN + ranging timer, O3..O4 (stock default 20 s) */
+	HH_TIMER_TO2, /* POPUP timer, O6 (default 100 ms) */
 };
 
 enum hh_gpon_signal {
-	HH_SIG_DS_SYNC,		/* downstream frame sync acquired (LOS/LOF cleared) */
-	HH_SIG_LOS_LOF,		/* loss of signal or loss of frame */
+	HH_SIG_DS_SYNC, /* downstream frame sync acquired (LOS/LOF cleared) */
+	HH_SIG_LOS_LOF, /* loss of signal or loss of frame */
 	HH_SIG_TO1_EXPIRED,
 	HH_SIG_TO2_EXPIRED,
-	HH_SIG_RPLM_SENT,	/* TXISR0.RPLMIRQ: MAC sent the ranging PLOAM buffer */
-	HH_SIG_ACTIVATE,	/* admin: (re)start from O1 */
-	HH_SIG_DEACTIVATE,	/* admin: laser off, back to O1 and stay there */
+	HH_SIG_RPLM_SENT,  /* TXISR0.RPLMIRQ: MAC sent the ranging PLOAM buffer */
+	HH_SIG_ACTIVATE,   /* admin: (re)start from O1 */
+	HH_SIG_DEACTIVATE, /* admin: laser off, back to O1 and stay there */
 };
 
 struct hh_gpon_ops {
@@ -69,10 +69,10 @@ struct hh_gpon_ops {
 };
 
 struct hh_gpon_fsm_cfg {
-	uint8_t sn[8];		/* Vendor-ID + VSSN, opaque configuration input */
-	uint8_t password[10];	/* opaque configuration input */
-	unsigned int to1_ms;	/* 0 -> 10000 */
-	unsigned int to2_ms;	/* 0 -> 100 */
+	uint8_t sn[8];        /* Vendor-ID + VSSN, opaque configuration input */
+	uint8_t password[10]; /* opaque configuration input */
+	unsigned int to1_ms;  /* 0 -> 10000 */
+	unsigned int to2_ms;  /* 0 -> 100 */
 };
 
 struct hh_gpon_fsm {
@@ -91,7 +91,7 @@ struct hh_gpon_fsm {
 };
 
 void hh_gpon_fsm_init(struct hh_gpon_fsm *f, const struct hh_gpon_fsm_cfg *cfg,
-		      const struct hh_gpon_ops *ops, void *ctx);
+                      const struct hh_gpon_ops *ops, void *ctx);
 void hh_gpon_fsm_signal(struct hh_gpon_fsm *f, enum hh_gpon_signal s);
 void hh_gpon_fsm_ploam(struct hh_gpon_fsm *f, const struct hh_ploam_raw *m);
 const char *hh_gpon_state_name(enum hh_gpon_state st);

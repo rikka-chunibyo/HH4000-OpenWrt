@@ -10,14 +10,20 @@
 #include <string.h>
 #endif
 
-static uint16_t be16(const uint8_t *p) { return (uint16_t)((p[0] << 8) | p[1]); }
+static uint16_t be16(const uint8_t *p)
+{
+	return (uint16_t)((p[0] << 8) | p[1]);
+}
 static uint32_t be32(const uint8_t *p)
 {
 	return ((uint32_t)p[0] << 24) | ((uint32_t)p[1] << 16) | ((uint32_t)p[2] << 8) | p[3];
 }
 static void put_be32(uint8_t *p, uint32_t v)
 {
-	p[0] = v >> 24; p[1] = v >> 16; p[2] = v >> 8; p[3] = v;
+	p[0] = v >> 24;
+	p[1] = v >> 16;
+	p[2] = v >> 8;
+	p[3] = v;
 }
 
 /* CRC-8, generator x^8 + x^2 + x + 1 (0x07), init 0, no reflection (G.984.3 9.1). */
@@ -36,7 +42,7 @@ uint8_t hh_ploam_crc8(const uint8_t *buf, unsigned int len)
 
 int hh_ploam_decode_ds(const struct hh_ploam_raw *raw, struct hh_ploam_ds *out)
 {
-	const uint8_t *d = raw->data;	/* d[0] is octet 3 */
+	const uint8_t *d = raw->data; /* d[0] is octet 3 */
 
 	memset(out, 0, sizeof(*out));
 	out->onu_id = raw->onu_id;
@@ -72,7 +78,7 @@ int hh_ploam_decode_ds(const struct hh_ploam_raw *raw, struct hh_ploam_ds *out)
 	case HH_DS_ENCRYPTED_PORT_ID:
 	case HH_DS_CONFIGURE_PORT_ID:
 		out->u.port.flag = d[0] & 1;
-		out->u.port.port_id = be16(&d[1]) >> 4;	/* 12 MSBs of octets 4-5 */
+		out->u.port.port_id = be16(&d[1]) >> 4; /* 12 MSBs of octets 4-5 */
 		break;
 	case HH_DS_ASSIGN_ALLOC_ID:
 		out->u.alloc.alloc_id = be16(&d[0]) >> 4;
@@ -102,10 +108,10 @@ static void us_init(struct hh_ploam_raw *m, uint8_t onu_id, uint8_t id)
 }
 
 void hh_ploam_encode_sn_onu(struct hh_ploam_raw *m, uint8_t onu_id, const uint8_t sn[8],
-			    uint16_t random_delay_32b, uint8_t flags)
+                            uint16_t random_delay_32b, uint8_t flags)
 {
 	us_init(m, onu_id, HH_US_SERIAL_NUMBER_ONU);
-	memcpy(m->data, sn, 8);			/* Vendor-ID (4) + VSSN (4) */
+	memcpy(m->data, sn, 8); /* Vendor-ID (4) + VSSN (4) */
 	m->data[8] = (uint8_t)(random_delay_32b >> 4);
 	m->data[9] = (uint8_t)((random_delay_32b & 0xf) << 4) | (flags & 0x0f);
 }
@@ -122,7 +128,7 @@ void hh_ploam_encode_dying_gasp(struct hh_ploam_raw *m, uint8_t onu_id)
 }
 
 void hh_ploam_encode_key(struct hh_ploam_raw *m, uint8_t onu_id, uint8_t key_index,
-			 uint8_t fragment, const uint8_t key_frag[8])
+                         uint8_t fragment, const uint8_t key_frag[8])
 {
 	us_init(m, onu_id, HH_US_ENCRYPTION_KEY);
 	m->data[0] = key_index;
