@@ -8,7 +8,6 @@ kernel and hardware drivers.
 The Bell Giga Hub (**FAST 5689E**, also written **F@ST 5689E**) is a related
 model. This port has been tested on the HH4000 FAST5689, and compatibility
 with the 5689E remains unverified.
-[Sagemcom Giga Hub model label](https://fccid.io/VW3FAST5689E/Label/FAST5689E-product-label-rev-5837896)
 
 To install OpenWrt on a compatible HH4000, start with the
 [installation and update guide](INSTALL.md). To install using an agent, hand [this](AGENTS.md) to it. The
