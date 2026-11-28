@@ -24,7 +24,7 @@ See the [display script examples](display-script-examples/) for how to load it.
 | --- | --- |
 | Ethernet | Four 1G LAN ports, configurable WAN defaulting to the 10G-capable eth4 port. A 2.5G link was verified; full 10G throughput remains untested. |
 | Switching | UCI-managed LAN bridge and explicit 802.1Q devices. The vendor kernel lacks VLAN-aware bridge filtering. |
-| Wi-Fi | Three vendor-driver radios, with LuCI configuration. Clean images leave Wi-Fi disabled until credentials are set. |
+| Wi-Fi | Three vendor-driver radios with up to eight WPA2 APs each. Add SSIDs in LuCI and assign a network to each AP. Native 802.11s mesh is unavailable with the stock driver. Clean images leave Wi-Fi disabled until credentials are set. |
 | Routing | Legacy iptables/firewall3, with hardware NAT observed in routed traffic. New builds include SKIPLOG rules for TUN payload traffic. |
 | Display, buttons and LEDs | LuCI-configurable status pages or an optional Python program, plus a configurable rear RESET button. |
 | Storage | Read-only firmware with a separate writable data overlay and a staged, data-preserving updater. |
