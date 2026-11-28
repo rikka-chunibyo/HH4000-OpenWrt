@@ -9,8 +9,8 @@ Protocol recap (hh4000_bridge.ino is the authoritative description):
   - Everything the router sends arrives on the serial port completely raw.
   - To send a command to the *bridge itself* (not the router), write the
     literal bytes "@HH <COMMAND>\n". The bridge's own replies are lines
-    starting with "@HH " too, so they're trivially distinguishable from
-    router output.
+    marked with "@HH " too, possibly following a router prompt on the
+    same line.
   - Everything else you write goes straight to the router's UART, byte
     for byte, no translation.
 
@@ -33,6 +33,7 @@ CLI usage:
     python3 hh4000_bridge.py /dev/ttyACM0 --cycle
     python3 hh4000_bridge.py /dev/ttyACM0 --send "printenv"
     python3 hh4000_bridge.py /dev/ttyACM0 --monitor
+    python3 hh4000_bridge.py /dev/ttyACM0 --target-baud 9600 --monitor
 """
 
 import argparse
@@ -75,17 +76,17 @@ class HH4000Bridge:
     def _command(self, text, timeout=5.0):
         """Send a "@HH ..." control command and wait for its "@HH OK/ERR" reply."""
         self.ser.write(b"@HH " + text.encode() + b"\n")
-        deadline = time.time() + timeout
+        deadline = time.monotonic() + timeout
         pending = b""
-        while time.time() < deadline:
+        while time.monotonic() < deadline:
             chunk = self._read_available()
             if chunk:
                 pending += chunk
                 while b"\n" in pending:
                     line, pending = pending.split(b"\n", 1)
-                    line = line.strip(b"\r")
-                    if line.startswith(b"@HH "):
-                        return line[4:].decode(errors="replace")
+                    _, marker, reply = line.rstrip(b"\r").rpartition(b"@HH ")
+                    if marker and reply.startswith((b"OK ", b"ERR ")):
+                        return reply.decode(errors="replace")
                     # else: router chatter interleaved with our command's
                     # reply -- dropped here; stash it yourself if you need it.
             else:
@@ -108,6 +109,15 @@ class HH4000Bridge:
 
     def ping(self):
         return self._command("PING")
+
+    def set_target_baud(self, baud: int) -> int:
+        """Set the target UART rate and check that the bridge accepted it."""
+        if type(baud) is not int or baud <= 0:
+            raise ValueError("target baud must be a positive integer")
+        reply = self._command(f"BAUD {baud}")
+        if reply != f"OK BAUD={baud}":
+            raise RuntimeError(f"bridge did not set target baud: {reply}")
+        return baud
 
     # -- router console I/O ------------------------------------------------
     def send(self, text, newline="\r"):
@@ -151,7 +161,10 @@ def _main():
     ap = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("port")
-    ap.add_argument("--baud", type=int, default=115200)
+    ap.add_argument("--baud", type=int, default=115200,
+                    help="host-to-Arduino baud (default: 115200)")
+    ap.add_argument("--target-baud", type=int, metavar="RATE",
+                    help="set the Arduino-to-target UART baud before other actions")
     ap.add_argument("--cycle", action="store_true", help="power-cycle the router")
     ap.add_argument("--off-ms", type=int, default=2000)
     ap.add_argument("--send", metavar="TEXT", help="send a line to the router console")
@@ -161,6 +174,11 @@ def _main():
     args = ap.parse_args()
 
     with HH4000Bridge(args.port, args.baud) as hub:
+        if args.target_baud is not None:
+            try:
+                hub.set_target_baud(args.target_baud)
+            except (ValueError, RuntimeError, TimeoutError) as exc:
+                ap.exit(1, f"{exc}\n")
         if args.status:
             print(hub.status())
         if args.cycle:

@@ -34,6 +34,11 @@ can capture readable boot logs before relying on the console for recovery.
 UART carries commands and logs. Use Ethernet or a verified file transfer
 from the installed OS for firmware images.
 
+The [Arduino Mega bridge](Arduino/hh4000_bridge) defaults to 115200 on both
+links. For a different target, send the bridge a line such as
+`@HH BAUD 9600`, or pass `--target-baud 9600` to the Python client. The
+USB link stays at 115200. Resetting the Arduino restores the target default.
+
 ### UART reference photos
 
 The microscope views show the signal leads and ground pad. Match your

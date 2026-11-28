@@ -31,8 +31,8 @@
  * WIRE PROTOCOL (host <-> this board, both at 115200 8N1 over Serial/USB)
  * -----------------------------------------------------------------------
  * Router -> host direction (Serial1 -> Serial): completely raw. Every
- * byte the router sends is forwarded to the host immediately, unmodified,
- * unbuffered, un-prefixed. `cat /dev/ttyACM0`, `minicom -D /dev/ttyACM0`,
+ * byte forwarded to the host is sent unmodified and
+ * un-prefixed. `cat /dev/ttyACM0`, `minicom -D /dev/ttyACM0`,
  * or a Python readline() loop all just see the router's real output.
  *
  * Host -> router direction (Serial -> Serial1) is ALSO raw passthrough,
@@ -60,6 +60,10 @@
  * Commands:
  *     PING                 -> OK PONG hh4000-bridge/1.0 pwr=ON|OFF uptime_ms=<n>
  *     STATUS               -> OK STATUS pwr=ON|OFF uptime_ms=<n>
+ *     BAUD [rate]          -> query or set the target UART rate, keeping
+ *                             8N1 framing and the USB link at 115200.
+ *                             Replies OK BAUD=<rate>. Switch while the
+ *                             target is idle. Reset restores 115200.
  *     PWR ON               -> turn router power on (idempotent)
  *     PWR OFF              -> turn router power off (idempotent)
  *     PWR CYCLE [off_ms]   -> power off, wait off_ms (default 2000, capped
@@ -104,7 +108,12 @@
 
 // ---- Configuration ---------------------------------------------------------
 #define PC_BAUD              115200UL
-#define ROUTER_BAUD          115200UL
+#define DEFAULT_TARGET_BAUD  115200UL
+
+// AVR USART has a 12-bit divider. The core can use normal or double speed.
+constexpr unsigned long MIN_TARGET_BAUD = (F_CPU + 65535UL) / 65536UL;
+constexpr unsigned long MAX_TARGET_BAUD = F_CPU / 8UL;
+unsigned long targetBaud = DEFAULT_TARGET_BAUD;
 
 #define RELAY_PIN            12      // see hardware note 1 above
 #define RELAY_ACTIVE_LOW     0      // see hardware note 3 above
@@ -154,6 +163,30 @@ void cmdStatus() {
          routerPowered ? "ON" : "OFF", millis());
 }
 
+void cmdBaud(const char *args) {
+  while (*args == ' ') args++;
+
+  if (*args) {
+    char *end;
+    unsigned long rate = strtoul(args, &end, 10);
+    while (*end == ' ') end++;
+    if (*args < '0' || *args > '9' || *end ||
+        rate < MIN_TARGET_BAUD || rate > MAX_TARGET_BAUD) {
+      replyf("ERR BAUD requires a rate from %lu to %lu",
+             MIN_TARGET_BAUD, MAX_TARGET_BAUD);
+      return;
+    }
+
+    if (rate != targetBaud) {
+      Serial1.end();
+      Serial1.begin(rate, SERIAL_8N1);
+      targetBaud = rate;
+    }
+  }
+
+  replyf("OK BAUD=%lu", targetBaud);
+}
+
 void cmdPwr(char *args) {
   while (*args == ' ') args++;
 
@@ -181,9 +214,6 @@ void cmdPwr(char *args) {
 }
 
 void processCommand(char *text) {
-  size_t n = strlen(text);
-  if (n && text[n - 1] == '\r') text[n - 1] = '\0'; // tolerate CRLF
-
   char *sp = strchr(text, ' ');
   size_t wordLen = sp ? (size_t)(sp - text) : strlen(text);
 
@@ -191,6 +221,8 @@ void processCommand(char *text) {
     cmdPing();
   } else if (wordLen == 6 && !strncasecmp(text, "STATUS", 6)) {
     cmdStatus();
+  } else if (wordLen == 4 && !strncasecmp(text, "BAUD", 4)) {
+    cmdBaud(sp ? sp + 1 : "");
   } else if (wordLen == 3 && !strncasecmp(text, "PWR", 3)) {
     cmdPwr(sp ? sp + 1 : (char *)"");
   } else {
@@ -202,18 +234,31 @@ void processCommand(char *text) {
 char cmdBuf[CMD_BUF_SIZE];
 uint8_t cmdLen = 0;
 bool inCommand = false;
+bool invalidCommand = false;
+bool skipCommandLF = false;
 uint8_t prefixMatched = 0;
 
 void handleHostByte(char c) {
+  if (skipCommandLF) {
+    skipCommandLF = false;
+    if (c == '\n') return;
+  }
+
   if (inCommand) {
     if (c == '\n' || c == '\r') {
       cmdBuf[cmdLen] = '\0';
-      if (cmdLen > 0) processCommand(cmdBuf);
+      if (invalidCommand) {
+        replyf("ERR invalid command frame");
+      } else if (cmdLen > 0) {
+        processCommand(cmdBuf);
+      }
       inCommand = false;
-      cmdLen = 0;
-    } else if (cmdLen < CMD_BUF_SIZE - 1) {
+      skipCommandLF = c == '\r';
+    } else if (c != '\0' && cmdLen < CMD_BUF_SIZE - 1) {
       cmdBuf[cmdLen++] = c;
-    } // else: drop overflow silently; the command will just fail to parse
+    } else {
+      invalidCommand = true;
+    }
     return;
   }
 
@@ -222,6 +267,7 @@ void handleHostByte(char c) {
     prefixMatched++;
     if (prefixMatched == CMD_PREFIX_LEN) {
       inCommand = true;
+      invalidCommand = false;
       cmdLen = 0;
       prefixMatched = 0;
     }
@@ -242,16 +288,17 @@ void setup() {
   setRouterPower(true);
 
   Serial.begin(PC_BAUD);
-  Serial1.begin(ROUTER_BAUD);
+  Serial1.begin(targetBaud, SERIAL_8N1);
   delay(200);
   replyf("BOOT hh4000-bridge/1.0 pwr=ON");
 }
 
 void loop() {
-  while (Serial1.available()) {
+  // Keep control commands responsive even if a fast target fills its RX buffer.
+  if (Serial1.available() && Serial.availableForWrite()) {
     Serial.write((uint8_t)Serial1.read());
   }
-  while (Serial.available()) {
+  if (Serial.available()) {
     handleHostByte((char)Serial.read());
   }
 }
